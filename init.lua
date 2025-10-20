@@ -960,7 +960,7 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'powershell', 'query', 'vim', 'vimdoc' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -969,6 +969,15 @@ require('lazy').setup({
         --  If you are experiencing weird indenting issues, add the language to
         --  the list of additional_vim_regex_highlighting and disabled languages for indent.
         additional_vim_regex_highlighting = { 'ruby' },
+        -- Disable for OneDrive paths that might cause sync issues
+        disable = function(lang, buf)
+          local bufname = vim.api.nvim_buf_get_name(buf)
+          -- Disable Treesitter for files in OneDrive if they're causing issues
+          if bufname:match('OneDrive') and lang == 'powershell' then
+            return true
+          end
+          return false
+        end,
       },
       indent = { enable = true, disable = { 'ruby' } },
     },

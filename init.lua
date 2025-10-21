@@ -452,7 +452,6 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = 'Telescope buffers' })
       vim.keymap.set('n', '<leader>fh', builtin.help_tags, { desc = 'Telescope help tags' })
 
-
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
         -- You can pass additional configuration to Telescope to change the theme, layout, etc.
@@ -973,7 +972,7 @@ require('lazy').setup({
         disable = function(lang, buf)
           local bufname = vim.api.nvim_buf_get_name(buf)
           -- Disable Treesitter for files in OneDrive if they're causing issues
-          if bufname:match('OneDrive') and lang == 'powershell' then
+          if bufname:match 'OneDrive' and lang == 'powershell' then
             return true
           end
           return false

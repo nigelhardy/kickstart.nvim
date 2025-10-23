@@ -761,12 +761,20 @@ require('lazy').setup({
     cmd = { 'ConformInfo' },
     keys = {
       {
+        'gq',
+        function()
+          require('conform').format { async = true, lsp_format = 'fallback' }
+        end,
+        mode = 'n',
+        desc = 'Format buffer',
+      },
+      {
         '<leader>f',
         function()
           require('conform').format { async = true, lsp_format = 'fallback' }
         end,
-        mode = '',
-        desc = '[F]ormat buffer',
+        mode = 'v',
+        desc = '[F]ormat selection',
       },
     },
     opts = {
@@ -787,6 +795,8 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        c = { 'clang_format' },
+        cpp = { 'clang_format' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --

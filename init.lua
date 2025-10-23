@@ -173,6 +173,13 @@ vim.o.scrolloff = 10
 -- See `:help 'confirm'`
 vim.o.confirm = true
 
+-- Indentation settings: use spaces instead of tabs
+vim.o.expandtab = true    -- Convert tabs to spaces
+vim.o.tabstop = 4         -- Number of spaces that a tab counts for
+vim.o.shiftwidth = 4      -- Number of spaces to use for autoindent
+vim.o.softtabstop = 4     -- Number of spaces that a tab counts for while editing
+vim.o.smartindent = true  -- Smart autoindenting on new lines
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 vim.keymap.set({ 'n', 'v' }, 'mm', '<cmd>BookmarksMark<cr>', { desc = 'Mark current line into active BookmarkList.' })

@@ -193,6 +193,19 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
+-- Telescope visual mode keymaps (load Telescope on demand)
+vim.keymap.set('v', '<leader>sw', function()
+  vim.cmd('noau normal! "vy"')
+  local text = vim.fn.getreg('v')
+  require('telescope.builtin').grep_string({ search = text })
+end, { desc = '[S]earch current selection' })
+
+vim.keymap.set('v', '<leader>sW', function()
+  vim.cmd('noau normal! "vy"')
+  local text = vim.fn.getreg('v')
+  require('telescope.builtin').live_grep({ default_text = text })
+end, { desc = '[S]earch current selection (editable)' })
+
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
 -- is not what someone will guess without a bit more experience.
@@ -361,7 +374,7 @@ require('lazy').setup({
 
       -- Document existing key chains
       spec = {
-        { '<leader>s', group = '[S]earch' },
+        { '<leader>s', group = '[S]earch', mode = { 'n', 'v' } },
         { '<leader>f', group = '[F]ind' },
         { '<leader>t', group = '[T]oggle' },
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
@@ -485,6 +498,11 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sn', function()
         builtin.find_files { cwd = vim.fn.stdpath 'config' }
       end, { desc = '[S]earch [N]eovim files' })
+
+      -- Live grep with current word pre-filled
+      vim.keymap.set('n', '<leader>sW', function()
+        builtin.live_grep { default_text = vim.fn.expand '<cword>' }
+      end, { desc = '[S]earch current [W]ord (editable)' })
     end,
   },
 

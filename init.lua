@@ -996,6 +996,10 @@ require('lazy').setup({
           if bufname:match 'OneDrive' and lang == 'powershell' then
             return true
           end
+          -- Disable for filetypes without available parsers
+          if lang == 'git_config' then
+            return true
+          end
           return false
         end,
       },

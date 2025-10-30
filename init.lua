@@ -174,11 +174,11 @@ vim.o.scrolloff = 10
 vim.o.confirm = true
 
 -- Indentation settings: use spaces instead of tabs
-vim.o.expandtab = true    -- Convert tabs to spaces
-vim.o.tabstop = 4         -- Number of spaces that a tab counts for
-vim.o.shiftwidth = 4      -- Number of spaces to use for autoindent
-vim.o.softtabstop = 4     -- Number of spaces that a tab counts for while editing
-vim.o.smartindent = true  -- Smart autoindenting on new lines
+vim.o.expandtab = true -- Convert tabs to spaces
+vim.o.tabstop = 4 -- Number of spaces that a tab counts for
+vim.o.shiftwidth = 4 -- Number of spaces to use for autoindent
+vim.o.softtabstop = 4 -- Number of spaces that a tab counts for while editing
+vim.o.smartindent = true -- Smart autoindenting on new lines
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -190,20 +190,21 @@ vim.keymap.set({ 'n', 'v' }, 'ma', '<cmd>BookmarksCommands<cr>', { desc = 'Find 
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
+
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
 -- Telescope visual mode keymaps (load Telescope on demand)
 vim.keymap.set('v', '<leader>sw', function()
-  vim.cmd('noau normal! "vy"')
-  local text = vim.fn.getreg('v')
-  require('telescope.builtin').grep_string({ search = text })
+  vim.cmd 'noau normal! "vy"'
+  local text = vim.fn.getreg 'v'
+  require('telescope.builtin').grep_string { search = text }
 end, { desc = '[S]earch current selection' })
 
 vim.keymap.set('v', '<leader>sW', function()
-  vim.cmd('noau normal! "vy"')
-  local text = vim.fn.getreg('v')
-  require('telescope.builtin').live_grep({ default_text = text })
+  vim.cmd 'noau normal! "vy"'
+  local text = vim.fn.getreg 'v'
+  require('telescope.builtin').live_grep { default_text = text }
 end, { desc = '[S]earch current selection (editable)' })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
@@ -475,7 +476,7 @@ require('lazy').setup({
 
       -- Custom function-based keymaps that can't be in keys table
       local builtin = require 'telescope.builtin'
-      
+
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
         -- You can pass additional configuration to Telescope to change the theme, layout, etc.
@@ -972,6 +973,102 @@ require('lazy').setup({
       -- - sd'   - [S]urround [D]elete [']quotes
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
+      
+      -- File explorer
+      require('mini.files').setup()
+      vim.keymap.set('n', '\\', function()
+        if vim.bo.filetype == 'minifiles' then
+          require('mini.files').close()
+        else
+          require('mini.files').open()
+        end
+      end, { desc = 'Toggle mini.files' })
+
+      -- Quick jump to letter in mini.files
+      vim.api.nvim_create_autocmd('FileType', {
+        pattern = 'minifiles',
+        callback = function()
+          vim.keymap.set('n', 'g/', function()
+            local char = vim.fn.getchar()
+            if char then
+              local letter = vim.fn.nr2char(char)
+              -- Account for icons (about 7 chars) before filename
+              local pattern = '^.......' .. letter
+              local line = vim.fn.search(pattern, 'W')
+              if line == 0 then
+                vim.notify('No line starting with "' .. letter .. '" found', vim.log.levels.INFO)
+              end
+            end
+          end, { desc = 'Jump to line starting with letter', buffer = true })
+        end,
+      })
+
+      -- Persistent bookmarks for mini.files
+      local bookmarks_file = vim.fn.stdpath('data') .. '/mini-files-bookmarks.lua'
+      
+      -- Load bookmarks from file
+      local load_bookmarks = function()
+        local ok, bookmarks = pcall(dofile, bookmarks_file)
+        if ok and type(bookmarks) == 'table' then
+          return bookmarks
+        end
+        return {}
+      end
+      
+      -- Save bookmarks to file
+      local save_bookmarks_to_file = function(bookmarks)
+        if bookmarks and next(bookmarks) then
+          local file = io.open(bookmarks_file, 'w')
+          if file then
+            file:write('return ' .. vim.inspect(bookmarks))
+            file:close()
+          end
+        end
+      end
+
+      local set_mark = function(id, path)
+        require('mini.files').set_bookmark(id, path)
+      end
+
+      vim.api.nvim_create_autocmd('User', {
+        pattern = 'MiniFilesExplorerOpen',
+        callback = function()
+          -- Load bookmarks from file on first open
+          if MiniFilesBookmarks == nil then
+            MiniFilesBookmarks = load_bookmarks()
+          end
+          
+          if MiniFilesBookmarks and next(MiniFilesBookmarks) then
+            for id, mark in pairs(MiniFilesBookmarks) do
+              if mark.path then
+                set_mark(id, mark.path)
+              end
+            end
+          end
+        end,
+      })
+
+      local save_marks = function()
+        local e = require('mini.files').get_explorer_state()
+        if e ~= nil and e.bookmarks then
+          MiniFilesBookmarks = e.bookmarks
+          save_bookmarks_to_file(MiniFilesBookmarks)
+        end
+      end
+
+      vim.api.nvim_create_autocmd('User', {
+        pattern = 'MiniFilesExplorerClose',
+        callback = save_marks,
+      })
+
+      -- Helper function to view current bookmarks
+      vim.keymap.set('n', '<leader>fm', function()
+        if MiniFilesBookmarks ~= nil then
+          print(vim.inspect(MiniFilesBookmarks))
+        else
+          print("No bookmarks saved yet")
+        end
+      end, { desc = '[F]iles [M]arks - view current bookmarks' })
 
       -- Simple and easy statusline.
       --  You could remove this setup call if you don't like it,
@@ -1044,7 +1141,6 @@ require('lazy').setup({
   -- require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
   -- require 'kickstart.plugins.autopairs',
-  require 'kickstart.plugins.neo-tree',
   require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`

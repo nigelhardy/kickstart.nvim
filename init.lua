@@ -194,6 +194,9 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
+-- Change directory to current file's location
+vim.keymap.set('n', '<leader>cd', ':cd %:p:h<CR>:pwd<CR>', { desc = 'CD to current file directory' })
+
 -- Telescope visual mode keymaps (load Telescope on demand)
 vim.keymap.set('v', '<leader>sw', function()
   vim.cmd 'noau normal! "vy"'
@@ -1003,6 +1006,7 @@ require('lazy').setup({
         end,
       })
 
+
       -- Persistent bookmarks for mini.files
       local bookmarks_file = vim.fn.stdpath('data') .. '/mini-files-bookmarks.lua'
       
@@ -1069,6 +1073,17 @@ require('lazy').setup({
           print("No bookmarks saved yet")
         end
       end, { desc = '[F]iles [M]arks - view current bookmarks' })
+
+      -- Reveal target buffer location in mini.files
+      vim.api.nvim_create_autocmd('User', {
+        pattern = 'MiniFilesBufferCreate',
+        callback = function(args)
+          local buf_id = args.data.buf_id
+          vim.keymap.set('n', 'g.', function()
+            require('mini.files').reveal_cwd()
+          end, { buffer = buf_id, desc = 'Reveal cwd in mini.files' })
+        end,
+      })
 
       -- Simple and easy statusline.
       --  You could remove this setup call if you don't like it,

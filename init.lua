@@ -1007,27 +1007,15 @@ require('lazy').setup({
       })
 
 
-      -- Persistent bookmarks for mini.files
+      -- Load bookmarks from file on startup only (no auto-save)
       local bookmarks_file = vim.fn.stdpath('data') .. '/mini-files-bookmarks.lua'
       
-      -- Load bookmarks from file
       local load_bookmarks = function()
         local ok, bookmarks = pcall(dofile, bookmarks_file)
         if ok and type(bookmarks) == 'table' then
           return bookmarks
         end
         return {}
-      end
-      
-      -- Save bookmarks to file
-      local save_bookmarks_to_file = function(bookmarks)
-        if bookmarks and next(bookmarks) then
-          local file = io.open(bookmarks_file, 'w')
-          if file then
-            file:write('return ' .. vim.inspect(bookmarks))
-            file:close()
-          end
-        end
       end
 
       local set_mark = function(id, path)
@@ -1038,12 +1026,9 @@ require('lazy').setup({
         pattern = 'MiniFilesExplorerOpen',
         callback = function()
           -- Load bookmarks from file on first open
-          if MiniFilesBookmarks == nil then
-            MiniFilesBookmarks = load_bookmarks()
-          end
-          
-          if MiniFilesBookmarks and next(MiniFilesBookmarks) then
-            for id, mark in pairs(MiniFilesBookmarks) do
+          local bookmarks = load_bookmarks()
+          if bookmarks and next(bookmarks) then
+            for id, mark in pairs(bookmarks) do
               if mark.path then
                 set_mark(id, mark.path)
               end
@@ -1051,28 +1036,6 @@ require('lazy').setup({
           end
         end,
       })
-
-      local save_marks = function()
-        local e = require('mini.files').get_explorer_state()
-        if e ~= nil and e.bookmarks then
-          MiniFilesBookmarks = e.bookmarks
-          save_bookmarks_to_file(MiniFilesBookmarks)
-        end
-      end
-
-      vim.api.nvim_create_autocmd('User', {
-        pattern = 'MiniFilesExplorerClose',
-        callback = save_marks,
-      })
-
-      -- Helper function to view current bookmarks
-      vim.keymap.set('n', '<leader>fm', function()
-        if MiniFilesBookmarks ~= nil then
-          print(vim.inspect(MiniFilesBookmarks))
-        else
-          print("No bookmarks saved yet")
-        end
-      end, { desc = '[F]iles [M]arks - view current bookmarks' })
 
       -- Reveal target buffer location in mini.files
       vim.api.nvim_create_autocmd('User', {
@@ -1082,6 +1045,12 @@ require('lazy').setup({
           vim.keymap.set('n', 'g.', function()
             require('mini.files').reveal_cwd()
           end, { buffer = buf_id, desc = 'Reveal cwd in mini.files' })
+          
+          -- Open bookmarks file for editing
+          vim.keymap.set('n', 'bm', function()
+            require('mini.files').close()
+            vim.cmd('edit ' .. bookmarks_file)
+          end, { buffer = buf_id, desc = 'Edit bookmarks file' })
         end,
       })
 

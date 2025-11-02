@@ -948,6 +948,25 @@ require('lazy').setup({
         MiniFiles.refresh({ content = { filter = filter_show } })
       end
       
+      -- Git status cache for mini.files
+      local git_status_cache = {}
+      local function update_git_status()
+        local cwd = vim.fn.getcwd()
+        local result = vim.fn.systemlist('git -C ' .. vim.fn.shellescape(cwd) .. ' status --porcelain 2>nul')
+        git_status_cache = {}
+        if vim.v.shell_error == 0 then
+          for _, line in ipairs(result) do
+            if line ~= '' then
+              local status = line:sub(1, 2)
+              local file = line:sub(4)
+              -- Normalize path separators for Windows
+              file = file:gsub('/', '\\')
+              git_status_cache[file] = status
+            end
+          end
+        end
+      end
+      
       require('mini.files').setup({
         windows = {
           preview = true,  -- Enable preview pane
@@ -963,7 +982,32 @@ require('lazy').setup({
             if fs_entry.fs_type == 'directory' then
               return '󰉋 ', 'MiniFilesDirectory'
             end
-            return MiniFiles.default_prefix(fs_entry)
+            
+            -- Add git status icons
+            local relative_path = vim.fn.fnamemodify(fs_entry.path, ':.')
+            local git_status = git_status_cache[relative_path] or ''
+            local icon = ''
+            local hl_group = 'MiniFilesFile'
+            
+            if git_status:match('^M') or git_status:match('^.M') then
+              icon = '●'
+              hl_group = 'DiagnosticWarn'
+            elseif git_status:match('^A') then
+              icon = '+'
+              hl_group = 'DiagnosticOk'
+            elseif git_status:match('^D') then
+              icon = '✖'
+              hl_group = 'DiagnosticError'
+            elseif git_status:match('^%?') then
+              icon = '?'
+              hl_group = 'DiagnosticHint'
+            elseif git_status:match('^R') then
+              icon = '→'
+              hl_group = 'DiagnosticInfo'
+            end
+            
+            local prefix, prefix_hl = MiniFiles.default_prefix(fs_entry)
+            return prefix .. icon, prefix_hl or hl_group
           end,
           sort = nil,
         },
@@ -984,11 +1028,13 @@ require('lazy').setup({
         },
       })
       
-      -- Toggle hidden files keybinding
+      -- Toggle hidden files keybinding and update git status
       vim.api.nvim_create_autocmd('User', {
         pattern = 'MiniFilesBufferCreate',
         callback = function(args)
           vim.keymap.set('n', 'g.', toggle_dotfiles, { buffer = args.data.buf_id, desc = 'Toggle hidden files' })
+          -- Update git status when buffer is created
+          update_git_status()
         end,
       })
       vim.keymap.set('n', '\\', function()

@@ -908,10 +908,21 @@ require('lazy').setup({
     init = function()
       -- Load colorscheme immediately in init to avoid startup delay
       vim.cmd.colorscheme 'tokyonight-night'
+      
+      -- Make background transparent
+      vim.cmd [[
+        highlight Normal guibg=NONE ctermbg=NONE
+        highlight NormalNC guibg=NONE ctermbg=NONE
+        highlight SignColumn guibg=NONE ctermbg=NONE
+        highlight EndOfBuffer guibg=NONE ctermbg=NONE
+      ]]
     end,
     opts = {
+      transparent = true,
       styles = {
         comments = { italic = false }, -- Disable italics in comments
+        sidebars = "transparent",
+        floats = "transparent",
       },
     },
   },

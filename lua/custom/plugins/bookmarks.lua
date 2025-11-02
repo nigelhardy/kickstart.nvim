@@ -1,14 +1,18 @@
 -- with lazy.nvim
 return {
   'LintaoAmons/bookmarks.nvim',
-  -- pin the plugin at specific version for stability
-  -- backup your bookmark sqlite db when there are breaking changes (major version change)
   tag = '3.2.0',
+  cmd = { 'BookmarksMark', 'BookmarksGoto', 'BookmarksCommands', 'BookmarksList' },
+  keys = {
+    { 'mm', '<cmd>BookmarksMark<cr>', desc = 'Mark current line into active BookmarkList', mode = { 'n', 'v' } },
+    { 'mo', '<cmd>BookmarksGoto<cr>', desc = 'Go to bookmark at current active BookmarkList', mode = { 'n', 'v' } },
+    { 'ma', '<cmd>BookmarksCommands<cr>', desc = 'Find and trigger a bookmark command', mode = { 'n', 'v' } },
+  },
   dependencies = {
     { 'kkharji/sqlite.lua' },
-    { 'nvim-telescope/telescope.nvim' }, -- currently has only telescopes supported, but PRs for other pickers are welcome
-    { 'stevearc/dressing.nvim' }, -- optional: better UI
-    { 'GeorgesAlkhouri/nvim-aider' }, -- optional: for Aider integration
+    { 'nvim-telescope/telescope.nvim' },
+    { 'stevearc/dressing.nvim' },
+    { 'GeorgesAlkhouri/nvim-aider' },
   },
   init = function()
     -- I have to point this thing to the SQLite3 DLL manually on Windows.

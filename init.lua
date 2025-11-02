@@ -182,9 +182,6 @@ vim.o.smartindent = true -- Smart autoindenting on new lines
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
-vim.keymap.set({ 'n', 'v' }, 'mm', '<cmd>BookmarksMark<cr>', { desc = 'Mark current line into active BookmarkList.' })
-vim.keymap.set({ 'n', 'v' }, 'mo', '<cmd>BookmarksGoto<cr>', { desc = 'Go to bookmark at current active BookmarkList' })
-vim.keymap.set({ 'n', 'v' }, 'ma', '<cmd>BookmarksCommands<cr>', { desc = 'Find and trigger a bookmark command.' })
 
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
@@ -435,37 +432,12 @@ require('lazy').setup({
       { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
     },
     config = function()
-      -- Telescope is a fuzzy finder that comes with a lot of different things that
-      -- it can fuzzy find! It's more than just a "file finder", it can search
-      -- many different aspects of Neovim, your workspace, LSP, and more!
-      --
-      -- The easiest way to use Telescope, is to start by doing something like:
-      --  :Telescope help_tags
-      --
-      -- After running this command, a window will open up and you're able to
-      -- type in the prompt window. You'll see a list of `help_tags` options and
-      -- a corresponding preview of the help.
-      --
-      -- Two important keymaps to use while in Telescope are:
-      --  - Insert mode: <c-/>
-      --  - Normal mode: ?
-      --
-      -- This opens a window that shows you all of the keymaps for the current
-      -- Telescope picker. This is really useful to discover what Telescope can
-      -- do as well as how to actually do it!
-
-      -- [[ Configure Telescope ]]
-      -- See `:help telescope` and `:help telescope.setup()`
       require('telescope').setup {
-        -- You can put your default mappings / updates / etc. in here
-        --  All the info you're looking for is in `:help telescope.setup()`
-        --
         defaults = {
           mappings = {
             i = { ['<c-enter>'] = 'to_fuzzy_refine' },
           },
         },
-        -- pickers = {}
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
@@ -473,39 +445,30 @@ require('lazy').setup({
         },
       }
 
-      -- Enable Telescope extensions if they are installed
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
 
-      -- Custom function-based keymaps that can't be in keys table
-      local builtin = require 'telescope.builtin'
-
-      -- Slightly advanced example of overriding default behavior and theme
+      -- Defer loading builtin to avoid startup cost
       vim.keymap.set('n', '<leader>/', function()
-        -- You can pass additional configuration to Telescope to change the theme, layout, etc.
-        builtin.current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {
+        require('telescope.builtin').current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {
           winblend = 10,
           previewer = false,
         })
       end, { desc = '[/] Fuzzily search in current buffer' })
 
-      -- It's also possible to pass additional configuration options.
-      --  See `:help telescope.builtin.live_grep()` for information about particular keys
       vim.keymap.set('n', '<leader>s/', function()
-        builtin.live_grep {
+        require('telescope.builtin').live_grep {
           grep_open_files = true,
           prompt_title = 'Live Grep in Open Files',
         }
       end, { desc = '[S]earch [/] in Open Files' })
 
-      -- Shortcut for searching your Neovim configuration files
       vim.keymap.set('n', '<leader>sn', function()
-        builtin.find_files { cwd = vim.fn.stdpath 'config' }
+        require('telescope.builtin').find_files { cwd = vim.fn.stdpath 'config' }
       end, { desc = '[S]earch [N]eovim files' })
 
-      -- Live grep with current word pre-filled
       vim.keymap.set('n', '<leader>sW', function()
-        builtin.live_grep { default_text = vim.fn.expand '<cword>' }
+        require('telescope.builtin').live_grep { default_text = vim.fn.expand '<cword>' }
       end, { desc = '[S]earch current [W]ord (editable)' })
     end,
   },
@@ -837,7 +800,7 @@ require('lazy').setup({
 
   { -- Autocompletion
     'saghen/blink.cmp',
-    event = 'VimEnter',
+    event = 'InsertEnter',
     version = '1.*',
     dependencies = {
       -- Snippet Engine
@@ -940,20 +903,17 @@ require('lazy').setup({
     --
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
     'folke/tokyonight.nvim',
+    lazy = false,
     priority = 1000, -- Make sure to load this before all the other start plugins.
-    config = function()
-      ---@diagnostic disable-next-line: missing-fields
-      require('tokyonight').setup {
-        styles = {
-          comments = { italic = false }, -- Disable italics in comments
-        },
-      }
-
-      -- Load the colorscheme here.
-      -- Like many other themes, this one has different styles, and you could load
-      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
+    init = function()
+      -- Load colorscheme immediately in init to avoid startup delay
       vim.cmd.colorscheme 'tokyonight-night'
     end,
+    opts = {
+      styles = {
+        comments = { italic = false }, -- Disable italics in comments
+      },
+    },
   },
 
   -- Highlight todo, notes, etc in comments
@@ -977,8 +937,60 @@ require('lazy').setup({
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
       
-      -- File explorer
-      require('mini.files').setup()
+      -- File explorer with better visuals
+      local show_dotfiles = true
+      local filter_show = function(fs_entry)
+        return show_dotfiles or not vim.startswith(fs_entry.name, '.')
+      end
+      
+      local toggle_dotfiles = function()
+        show_dotfiles = not show_dotfiles
+        MiniFiles.refresh({ content = { filter = filter_show } })
+      end
+      
+      require('mini.files').setup({
+        windows = {
+          preview = true,  -- Enable preview pane
+          width_focus = 30,
+          width_preview = 50,
+        },
+        options = {
+          use_as_default_explorer = true,
+        },
+        content = {
+          filter = filter_show,
+          prefix = function(fs_entry)
+            if fs_entry.fs_type == 'directory' then
+              return '󰉋 ', 'MiniFilesDirectory'
+            end
+            return MiniFiles.default_prefix(fs_entry)
+          end,
+          sort = nil,
+        },
+        mappings = {
+          close       = 'q',
+          go_in       = 'l',
+          go_in_plus  = 'L',
+          go_out      = 'h',
+          go_out_plus = 'H',
+          mark_goto   = "'",
+          mark_set    = 'm',
+          reset       = '<BS>',
+          reveal_cwd  = '@',
+          show_help   = 'g?',
+          synchronize = '=',
+          trim_left   = '<',
+          trim_right  = '>',
+        },
+      })
+      
+      -- Toggle hidden files keybinding
+      vim.api.nvim_create_autocmd('User', {
+        pattern = 'MiniFilesBufferCreate',
+        callback = function(args)
+          vim.keymap.set('n', 'g.', toggle_dotfiles, { buffer = args.data.buf_id, desc = 'Toggle hidden files' })
+        end,
+      })
       vim.keymap.set('n', '\\', function()
         if vim.bo.filetype == 'minifiles' then
           require('mini.files').close()
@@ -1037,14 +1049,11 @@ require('lazy').setup({
         end,
       })
 
-      -- Reveal target buffer location in mini.files
+      -- Additional mini.files keybindings
       vim.api.nvim_create_autocmd('User', {
         pattern = 'MiniFilesBufferCreate',
         callback = function(args)
           local buf_id = args.data.buf_id
-          vim.keymap.set('n', 'g.', function()
-            require('mini.files').reveal_cwd()
-          end, { buffer = buf_id, desc = 'Reveal cwd in mini.files' })
           
           -- Open bookmarks file for editing
           vim.keymap.set('n', 'bm', function()

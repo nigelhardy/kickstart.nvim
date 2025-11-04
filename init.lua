@@ -959,6 +959,23 @@ require('lazy').setup({
   -- Highlight todo, notes, etc in comments
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
 
+  { -- Snacks: modern UI and Explorer (netrw replacement)
+    'folke/snacks.nvim',
+    version = false,
+    dependencies = { { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font } },
+    opts = {
+      explorer = {
+        enabled = true,
+        replace_netrw = true,
+      },
+    },
+    keys = {
+      { '\\', function() require('snacks').explorer.open() end, desc = 'Open Snacks Explorer' },
+      { '<leader>e', function() require('snacks').explorer.open() end, desc = 'Explorer' },
+      { '<leader>E', function() require('snacks').explorer.reveal() end, desc = 'Reveal in Explorer' },
+    },
+  },
+
   { -- Collection of various small independent plugins/modules
     'echasnovski/mini.nvim',
     config = function()
@@ -976,83 +993,6 @@ require('lazy').setup({
       -- - sd'   - [S]urround [D]elete [']quotes
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
-      
-      -- File explorer
-      require('mini.files').setup()
-      vim.keymap.set('n', '\\', function()
-        if vim.bo.filetype == 'minifiles' then
-          require('mini.files').close()
-        else
-          require('mini.files').open()
-        end
-      end, { desc = 'Toggle mini.files' })
-
-      -- Quick jump to letter in mini.files
-      vim.api.nvim_create_autocmd('FileType', {
-        pattern = 'minifiles',
-        callback = function()
-          vim.keymap.set('n', 'g/', function()
-            local char = vim.fn.getchar()
-            if char then
-              local letter = vim.fn.nr2char(char)
-              -- Account for icons (about 7 chars) before filename
-              local pattern = '^.......' .. letter
-              local line = vim.fn.search(pattern, 'W')
-              if line == 0 then
-                vim.notify('No line starting with "' .. letter .. '" found', vim.log.levels.INFO)
-              end
-            end
-          end, { desc = 'Jump to line starting with letter', buffer = true })
-        end,
-      })
-
-
-      -- Load bookmarks from file on startup only (no auto-save)
-      local bookmarks_file = vim.fn.stdpath('data') .. '/mini-files-bookmarks.lua'
-      
-      local load_bookmarks = function()
-        local ok, bookmarks = pcall(dofile, bookmarks_file)
-        if ok and type(bookmarks) == 'table' then
-          return bookmarks
-        end
-        return {}
-      end
-
-      local set_mark = function(id, path)
-        require('mini.files').set_bookmark(id, path)
-      end
-
-      vim.api.nvim_create_autocmd('User', {
-        pattern = 'MiniFilesExplorerOpen',
-        callback = function()
-          -- Load bookmarks from file on first open
-          local bookmarks = load_bookmarks()
-          if bookmarks and next(bookmarks) then
-            for id, mark in pairs(bookmarks) do
-              if mark.path then
-                set_mark(id, mark.path)
-              end
-            end
-          end
-        end,
-      })
-
-      -- Reveal target buffer location in mini.files
-      vim.api.nvim_create_autocmd('User', {
-        pattern = 'MiniFilesBufferCreate',
-        callback = function(args)
-          local buf_id = args.data.buf_id
-          vim.keymap.set('n', 'g.', function()
-            require('mini.files').reveal_cwd()
-          end, { buffer = buf_id, desc = 'Reveal cwd in mini.files' })
-          
-          -- Open bookmarks file for editing
-          vim.keymap.set('n', 'bm', function()
-            require('mini.files').close()
-            vim.cmd('edit ' .. bookmarks_file)
-          end, { buffer = buf_id, desc = 'Edit bookmarks file' })
-        end,
-      })
 
       -- Simple and easy statusline.
       --  You could remove this setup call if you don't like it,

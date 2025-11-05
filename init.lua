@@ -959,11 +959,17 @@ require('lazy').setup({
         MiniFiles.refresh({ content = { filter = filter_show } })
       end
       
+      local preview_enabled = true
+      local toggle_preview = function()
+        preview_enabled = not preview_enabled
+        MiniFiles.refresh({ windows = { preview = preview_enabled } })
+      end
+      
       require('mini.files').setup({
         windows = {
           preview = true,  -- Enable preview pane
           width_focus = 30,
-          width_preview = 50,
+          width_preview = 80,
         },
         options = {
           use_as_default_explorer = true,
@@ -981,7 +987,6 @@ require('lazy').setup({
           mark_goto   = "'",
           mark_set    = 'm',
           reset       = '<BS>',
-          reveal_cwd  = '@',
           show_help   = 'g?',
           synchronize = '=',
           trim_left   = '<',
@@ -989,11 +994,18 @@ require('lazy').setup({
         },
       })
       
-      -- Toggle hidden files keybinding
+      -- Toggle hidden files and preview keybindings
       vim.api.nvim_create_autocmd('User', {
         pattern = 'MiniFilesBufferCreate',
         callback = function(args)
           vim.keymap.set('n', 'g.', toggle_dotfiles, { buffer = args.data.buf_id, desc = 'Toggle hidden files' })
+          vim.keymap.set('n', 'gp', toggle_preview, { buffer = args.data.buf_id, desc = 'Toggle preview' })
+          vim.keymap.set('n', 'gz', function()
+            local path = MiniFiles.get_fs_entry().path
+            local dir = vim.fn.isdirectory(path) == 1 and path or vim.fn.fnamemodify(path, ':h')
+            vim.cmd('cd ' .. vim.fn.fnameescape(dir))
+            vim.notify('CWD: ' .. dir)
+          end, { buffer = args.data.buf_id, desc = 'Set cwd to current location' })
         end,
       })
       vim.keymap.set('n', '\\', function()

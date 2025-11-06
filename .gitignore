@@ -7,3 +7,5 @@ nvim
 spell/
 lazy-lock.json
 .aider*
+
+**/.DS_Store

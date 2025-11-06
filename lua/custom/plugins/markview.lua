@@ -8,7 +8,7 @@ return {
 
   -- For blink.cmp's completion
   -- source
-  -- dependencies = {
-  --     "saghen/blink.cmp"
-  -- },
+  dependencies = {
+      "saghen/blink.cmp"
+  },
 }

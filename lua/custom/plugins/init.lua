@@ -6,16 +6,6 @@ return {
   {
     'ellisonleao/gruvbox.nvim',
     priority = 1000,
-  },
-  {
-    'nvim-tree/nvim-tree.lua',
-    version = '*',
-    lazy = false,
-    dependencies = {
-      'nvim-tree/nvim-web-devicons',
-    },
-    config = function()
-      require('nvim-tree').setup {}
-    end,
+    lazy = true, -- Only load if explicitly switched to
   },
 }

@@ -52,10 +52,7 @@ return {
         map('<leader>lh', vim.lsp.buf.signature_help, 'Signature [H]elp')
         map('<C-k>', vim.lsp.buf.signature_help, 'Signature help', 'i')
 
-        -- Format document
-        map('<leader>lF', function()
-          vim.lsp.buf.format({ async = true })
-        end, '[F]ormat document')
+
       end,
     })
   end,

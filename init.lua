@@ -759,23 +759,15 @@ require('lazy').setup({
     'stevearc/conform.nvim',
     event = { 'BufWritePre' },
     cmd = { 'ConformInfo' },
-    keys = {
-      {
-        'gq',
-        function()
-          require('conform').format { async = true, lsp_format = 'fallback' }
-        end,
-        mode = 'n',
-        desc = 'Format buffer',
-      },
-      {
-        '<leader>f',
-        function()
-          require('conform').format { async = true, lsp_format = 'fallback' }
-        end,
-        mode = 'v',
-        desc = '[F]ormat selection',
-      },
+      keys = {
+        {
+          'gq',
+          function()
+            require('conform').format { async = true, lsp_format = 'fallback' }
+          end,
+          mode = { 'n', 'v' },
+          desc = 'Format buffer/selection',
+        },
     },
     opts = {
       notify_on_error = false,
@@ -783,7 +775,7 @@ require('lazy').setup({
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
         -- languages here or re-enable it for the disabled ones.
-        local disable_filetypes = { c = true, cpp = true }
+        local disable_filetypes = {}
         if disable_filetypes[vim.bo[bufnr].filetype] then
           return nil
         else

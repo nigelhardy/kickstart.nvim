@@ -546,6 +546,11 @@ require('lazy').setup({
             vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
           end
 
+          -- Register which-key group for LSP commands
+          require('which-key').add({
+            { '<leader>l', group = '[L]SP', buffer = event.buf },
+          })
+
           -- Rename the variable under your cursor.
           --  Most Language Servers support renaming across files, etc.
           map('grn', vim.lsp.buf.rename, '[R]e[n]ame')
@@ -582,6 +587,9 @@ require('lazy').setup({
           --  Useful when you're not sure what type a variable is and you want to see
           --  the definition of its *type*, not where it was *defined*.
           map('grt', require('telescope.builtin').lsp_type_definitions, '[G]oto [T]ype Definition')
+
+          -- NOTE: Additional LSP keymaps are defined in lua/custom/plugins/lsp-keymaps.lua
+          -- This keeps custom keymaps organized and separate from the base kickstart config.
 
           -- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
           ---@param client vim.lsp.Client
@@ -1008,6 +1016,10 @@ require('lazy').setup({
           end, { buffer = args.data.buf_id, desc = 'Set cwd to current location' })
         end,
       })
+      vim.keymap.set('n', '<leader>e', function()
+        require('mini.files').open(vim.api.nvim_buf_get_name(0))
+      end, { desc = 'Open mini.files at current file' })
+
       vim.keymap.set('n', '\\', function()
         if vim.bo.filetype == 'minifiles' then
           require('mini.files').close()

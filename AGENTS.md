@@ -1,10 +1,10 @@
 # WARP.md
 
-This file provides guidance to WARP (warp.dev) when working with code in this repository.
+This file provides guidance to AI agents when working with code in this repository.
 
 ## Project Overview
 
-This is a **kickstart.nvim** configuration - a single-file Neovim starter configuration designed to be read, understood, and modified by the user. It's not a distribution but a teaching tool and foundation for personal Neovim setups.
+This is a **kickstart.nvim** configuration - a single-file Neovim starter configuration that has been customized to fit my own needs.
 
 Key characteristics:
 - Single `init.lua` file with extensive documentation
@@ -13,14 +13,6 @@ Key characteristics:
 - Modular plugin system via `lua/custom/plugins/` and `lua/kickstart/plugins/`
 
 ## Common Commands
-
-### Core Neovim Operations
-- **Start Neovim**: `nvim`
-- **Run Neovim tutorial**: `:Tutor` (first-time users should do this)
-- **Check health**: `:checkhealth` (diagnose configuration issues)
-- **Update plugins**: `:Lazy update`
-- **View plugin status**: `:Lazy`
-- **Format current buffer**: `<leader>f` (space + f)
 
 ### Lua Formatting
 - **Format Lua code**: Uses `stylua` with configuration in `.stylua.toml`
@@ -37,19 +29,9 @@ Key characteristics:
 - **Search files**: `<space>sf` or `<space>ff`
 - **Live grep**: `<space>sg` or `<space>fg`
 - **Search keymaps**: `<space>sk`
-- **File tree**: `\` (backslash) to toggle Neo-tree
+- **File tree**: `\` (backslash) to toggle mini.files
 - **Buffer search**: `<space><space>`
 - **Bookmarks**: `mm` (mark), `mo` (goto), `ma` (commands)
-
-### LSP Operations
-- **Go to definition**: `grd`
-- **Go to references**: `grr` 
-- **Go to implementation**: `gri`
-- **Rename symbol**: `grn`
-- **Code actions**: `gra`
-- **Toggle inlay hints**: `<space>th`
-- **Document symbols**: `gO`
-- **Workspace symbols**: `gW`
 
 ## Architecture Overview
 
@@ -92,8 +74,7 @@ Current custom plugins include:
 - **Bookmarks**: Line bookmarking with SQLite backend
 - **Clangd**: Enhanced C/C++ language server configuration
 - **Neogit**: Git interface within Neovim
-- **Gruvbox**: Alternative colorscheme option
-- **Nvim-tree**: File explorer (alternative to Neo-tree)
+- **mini.files**: File explorer
 
 ## Development Workflow
 

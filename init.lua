@@ -1008,6 +1008,10 @@ require('lazy').setup({
           end, { buffer = args.data.buf_id, desc = 'Set cwd to current location' })
         end,
       })
+      vim.keymap.set('n', '<leader>e', function()
+        require('mini.files').open(vim.api.nvim_buf_get_name(0))
+      end, { desc = 'Open mini.files at current file' })
+
       vim.keymap.set('n', '\\', function()
         if vim.bo.filetype == 'minifiles' then
           require('mini.files').close()

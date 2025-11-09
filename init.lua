@@ -187,6 +187,17 @@ vim.o.smartindent = true -- Smart autoindenting on new lines
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
+vim.keymap.set('n', '<leader>a', function()
+  local ext = vim.fn.expand '%:e'
+  local base = vim.fn.expand '%:r'
+  local target = ext == 'c' and base .. '.h' or base .. '.c'
+
+  if vim.fn.filereadable(target) == 1 then
+    vim.cmd('edit ' .. target)
+  else
+    print('File ' .. target .. ' not found')
+  end
+end, { desc = 'Switch between .c and .h' })
 
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
@@ -552,10 +563,10 @@ require('lazy').setup({
           end
 
           -- Register which-key group for LSP commands
-          require('which-key').add({
+          require('which-key').add {
             { '<leader>l', group = '[L]SP', buffer = event.buf },
             { 'gr', group = '[G]oto/[R]efactor', buffer = event.buf },
-          })
+          }
 
           -- Rename the variable under your cursor.
           --  Most Language Servers support renaming across files, etc.
@@ -765,15 +776,15 @@ require('lazy').setup({
     'stevearc/conform.nvim',
     event = { 'BufWritePre' },
     cmd = { 'ConformInfo' },
-      keys = {
-        {
-          'gq',
-          function()
-            require('conform').format { async = true, lsp_format = 'fallback' }
-          end,
-          mode = { 'n', 'v' },
-          desc = 'Format buffer/selection',
-        },
+    keys = {
+      {
+        'gq',
+        function()
+          require('conform').format { async = true, lsp_format = 'fallback' }
+        end,
+        mode = { 'n', 'v' },
+        desc = 'Format buffer/selection',
+      },
     },
     opts = {
       notify_on_error = false,
@@ -914,7 +925,7 @@ require('lazy').setup({
     init = function()
       -- Load colorscheme immediately in init to avoid startup delay
       vim.cmd.colorscheme 'tokyonight-night'
-      
+
       -- Make background transparent
       vim.cmd [[
         highlight Normal guibg=NONE ctermbg=NONE
@@ -927,8 +938,8 @@ require('lazy').setup({
       transparent = true,
       styles = {
         comments = { italic = false }, -- Disable italics in comments
-        sidebars = "transparent",
-        floats = "transparent",
+        sidebars = 'transparent',
+        floats = 'transparent',
       },
     },
   },
@@ -953,27 +964,27 @@ require('lazy').setup({
       -- - sd'   - [S]urround [D]elete [']quotes
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
-      
+
       -- File explorer with better visuals
       local show_dotfiles = true
       local filter_show = function(fs_entry)
         return show_dotfiles or not vim.startswith(fs_entry.name, '.')
       end
-      
+
       local toggle_dotfiles = function()
         show_dotfiles = not show_dotfiles
-        MiniFiles.refresh({ content = { filter = filter_show } })
+        MiniFiles.refresh { content = { filter = filter_show } }
       end
-      
+
       local preview_enabled = true
       local toggle_preview = function()
         preview_enabled = not preview_enabled
-        MiniFiles.refresh({ windows = { preview = preview_enabled } })
+        MiniFiles.refresh { windows = { preview = preview_enabled } }
       end
-      
-      require('mini.files').setup({
+
+      require('mini.files').setup {
         windows = {
-          preview = true,  -- Enable preview pane
+          preview = true, -- Enable preview pane
           width_focus = 30,
           width_preview = 80,
         },
@@ -985,21 +996,21 @@ require('lazy').setup({
           sort = nil,
         },
         mappings = {
-          close       = 'q',
-          go_in       = 'l',
-          go_in_plus  = 'L',
-          go_out      = 'h',
+          close = 'q',
+          go_in = 'l',
+          go_in_plus = 'L',
+          go_out = 'h',
           go_out_plus = 'H',
-          mark_goto   = "'",
-          mark_set    = 'm',
-          reset       = '<BS>',
-          show_help   = 'g?',
+          mark_goto = "'",
+          mark_set = 'm',
+          reset = '<BS>',
+          show_help = 'g?',
           synchronize = '=',
-          trim_left   = '<',
-          trim_right  = '>',
+          trim_left = '<',
+          trim_right = '>',
         },
-      })
-      
+      }
+
       -- Toggle hidden files and preview keybindings
       vim.api.nvim_create_autocmd('User', {
         pattern = 'MiniFilesBufferCreate',
@@ -1045,10 +1056,9 @@ require('lazy').setup({
         end,
       })
 
-
       -- Load bookmarks from file on startup only (no auto-save)
-      local bookmarks_file = vim.fn.stdpath('data') .. '/mini-files-bookmarks.lua'
-      
+      local bookmarks_file = vim.fn.stdpath 'data' .. '/mini-files-bookmarks.lua'
+
       local load_bookmarks = function()
         local ok, bookmarks = pcall(dofile, bookmarks_file)
         if ok and type(bookmarks) == 'table' then
@@ -1081,7 +1091,7 @@ require('lazy').setup({
         pattern = 'MiniFilesBufferCreate',
         callback = function(args)
           local buf_id = args.data.buf_id
-          
+
           -- Open bookmarks file for editing
           vim.keymap.set('n', 'bm', function()
             require('mini.files').close()
@@ -1115,7 +1125,22 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'gitcommit', 'git_rebase', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'powershell', 'query', 'vim', 'vimdoc' },
+      ensure_installed = {
+        'bash',
+        'c',
+        'diff',
+        'gitcommit',
+        'git_rebase',
+        'html',
+        'lua',
+        'luadoc',
+        'markdown',
+        'markdown_inline',
+        'powershell',
+        'query',
+        'vim',
+        'vimdoc',
+      },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -1142,7 +1167,7 @@ require('lazy').setup({
     },
     config = function(_, opts)
       -- Force Windows to compile parsers locally with clang
-      if vim.fn.has('win32') == 1 then
+      if vim.fn.has 'win32' == 1 then
         require('nvim-treesitter.install').prefer_git = true
         require('nvim-treesitter.install').compilers = { 'clang', 'gcc' }
       end

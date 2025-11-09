@@ -336,6 +336,11 @@ require('lazy').setup({
       -- delay between pressing a key and opening which-key (milliseconds)
       -- this setting is independent of vim.o.timeoutlen
       delay = 0,
+      -- Triggers which-key to show for specific prefixes
+      triggers = {
+        { '<auto>', mode = 'nixsotc' },
+        { 'gr', mode = { 'n', 'v' } },
+      },
       icons = {
         -- set icon mappings to true if you have a Nerd Font
         mappings = vim.g.have_nerd_font,
@@ -549,6 +554,7 @@ require('lazy').setup({
           -- Register which-key group for LSP commands
           require('which-key').add({
             { '<leader>l', group = '[L]SP', buffer = event.buf },
+            { 'gr', group = '[G]oto/[R]efactor', buffer = event.buf },
           })
 
           -- Rename the variable under your cursor.

@@ -1,12 +1,16 @@
+-- This file configures clangd LSP for C/C++ files
+-- It depends on nvim-lspconfig being set up in init.lua first
 return {
-  'neovim/nvim-lspconfig',
+  'saghen/blink.cmp', -- Just need a plugin to hook into lazy.nvim's ft loading
   ft = { 'c', 'cpp', 'objc', 'objcpp', 'cuda', 'proto' },
-  dependencies = {
-    'mason-org/mason.nvim',
-    'mason-org/mason-lspconfig.nvim',
-    'saghen/blink.cmp',
-  },
   config = function()
+    -- Only run if lspconfig hasn't been loaded yet
+    -- This ensures the LspAttach autocmd from init.lua is set up first
+    if not package.loaded['lspconfig'] then
+      -- Force load the main lspconfig setup from init.lua
+      require('lazy').load({ plugins = { 'nvim-lspconfig' } })
+    end
+
     -- Get capabilities from blink.cmp
     local capabilities = require('blink.cmp').get_lsp_capabilities()
 

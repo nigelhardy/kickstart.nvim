@@ -707,7 +707,24 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        -- clangd = {},
+        clangd = {
+          cmd = {
+            'clangd',
+            '--background-index',
+            '--clang-tidy',
+            '--header-insertion=never', -- Embedded C doesn't need auto-includes
+            '--completion-style=bundled', -- Group similar completions for less clutter
+            '--limit-results=50', -- Reduce from default 100 for faster results
+            '--fallback-style=llvm',
+            '-j=2', -- Limit background indexing to 2 threads for lower CPU usage
+          },
+          init_options = {
+            clangdFileStatus = true,
+            usePlaceholders = false, -- Disable for lighter rendering
+            completeUnimported = false, -- Not needed with explicit includes
+            semanticHighlighting = true,
+          },
+        },
         -- gopls = {},
         -- pyright = {},
         -- rust_analyzer = {},

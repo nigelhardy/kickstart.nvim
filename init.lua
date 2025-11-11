@@ -205,6 +205,36 @@ vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagn
 -- Change directory to current file's location
 vim.keymap.set('n', '<leader>cd', ':cd %:p:h<CR>:pwd<CR>', { desc = 'CD to current file directory' })
 
+-- Global clangd LSP toggle (works even when no LSP attached)
+vim.keymap.set('n', '<leader>tc', function()
+  local buf = vim.api.nvim_get_current_buf()
+  local clients = vim.lsp.get_clients({ bufnr = buf })
+  local clangd_client = nil
+  
+  -- Find clangd client for this buffer
+  for _, client in ipairs(clients) do
+    if client.name == 'clangd' then
+      clangd_client = client
+      break
+    end
+  end
+  
+  if clangd_client then
+    -- Stop clangd for this buffer
+    vim.lsp.stop_client(clangd_client.id)
+    vim.notify('Clangd LSP disabled for buffer', vim.log.levels.INFO)
+  else
+    -- Start clangd for this buffer
+    local filetype = vim.bo[buf].filetype
+    if vim.tbl_contains({ 'c', 'cpp', 'objc', 'objcpp', 'cuda', 'proto' }, filetype) then
+      vim.lsp.enable('clangd')
+      vim.notify('Clangd LSP enabled for buffer', vim.log.levels.INFO)
+    else
+      vim.notify('Clangd not available for filetype: ' .. filetype, vim.log.levels.WARN)
+    end
+  end
+end, { desc = '[T]oggle [C]langd LSP' })
+
 -- Telescope visual mode keymaps (load Telescope on demand)
 vim.keymap.set('v', '<leader>sw', function()
   vim.cmd 'noau normal! "vy"'
@@ -659,6 +689,36 @@ require('lazy').setup({
               vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
             end, '[T]oggle Inlay [H]ints')
           end
+
+          -- Toggle clangd LSP on/off for current buffer
+          map('<leader>tc', function()
+            local buf = event.buf
+            local clients = vim.lsp.get_clients({ bufnr = buf })
+            local clangd_client = nil
+            
+            -- Find clangd client for this buffer
+            for _, client in ipairs(clients) do
+              if client.name == 'clangd' then
+                clangd_client = client
+                break
+              end
+            end
+            
+            if clangd_client then
+              -- Stop clangd for this buffer
+              vim.lsp.stop_client(clangd_client.id)
+              vim.notify('Clangd LSP disabled for buffer', vim.log.levels.INFO)
+            else
+              -- Start clangd for this buffer
+              local filetype = vim.bo[buf].filetype
+              if vim.tbl_contains({ 'c', 'cpp', 'objc', 'objcpp', 'cuda', 'proto' }, filetype) then
+                vim.lsp.enable('clangd')
+                vim.notify('Clangd LSP enabled for buffer', vim.log.levels.INFO)
+              else
+                vim.notify('Clangd not available for filetype: ' .. filetype, vim.log.levels.WARN)
+              end
+            end
+          end, '[T]oggle [C]langd LSP')
         end,
       })
 

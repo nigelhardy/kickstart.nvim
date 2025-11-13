@@ -187,12 +187,53 @@ vim.o.smartindent = true -- Smart autoindenting on new lines
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
+vim.keymap.set('n', '<leader>a', function()
+  local ext = vim.fn.expand '%:e'
+  local base = vim.fn.expand '%:r'
+  local target = ext == 'c' and base .. '.h' or base .. '.c'
+
+  if vim.fn.filereadable(target) == 1 then
+    vim.cmd('edit ' .. target)
+  else
+    print('File ' .. target .. ' not found')
+  end
+end, { desc = 'Switch between .c and .h' })
 
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
 -- Change directory to current file's location
 vim.keymap.set('n', '<leader>cd', ':cd %:p:h<CR>:pwd<CR>', { desc = 'CD to current file directory' })
+
+-- Global clangd LSP toggle (works even when no LSP attached)
+vim.keymap.set('n', '<leader>tc', function()
+  local buf = vim.api.nvim_get_current_buf()
+  local clients = vim.lsp.get_clients({ bufnr = buf })
+  local clangd_client = nil
+  
+  -- Find clangd client for this buffer
+  for _, client in ipairs(clients) do
+    if client.name == 'clangd' then
+      clangd_client = client
+      break
+    end
+  end
+  
+  if clangd_client then
+    -- Stop clangd for this buffer
+    vim.lsp.stop_client(clangd_client.id)
+    vim.notify('Clangd LSP disabled for buffer', vim.log.levels.INFO)
+  else
+    -- Start clangd for this buffer
+    local filetype = vim.bo[buf].filetype
+    if vim.tbl_contains({ 'c', 'cpp', 'objc', 'objcpp', 'cuda', 'proto' }, filetype) then
+      vim.lsp.enable('clangd')
+      vim.notify('Clangd LSP enabled for buffer', vim.log.levels.INFO)
+    else
+      vim.notify('Clangd not available for filetype: ' .. filetype, vim.log.levels.WARN)
+    end
+  end
+end, { desc = '[T]oggle [C]langd LSP' })
 
 -- Telescope visual mode keymaps (load Telescope on demand)
 vim.keymap.set('v', '<leader>sw', function()
@@ -336,6 +377,11 @@ require('lazy').setup({
       -- delay between pressing a key and opening which-key (milliseconds)
       -- this setting is independent of vim.o.timeoutlen
       delay = 0,
+      -- Triggers which-key to show for specific prefixes
+      triggers = {
+        { '<auto>', mode = 'nixsotc' },
+        { 'gr', mode = { 'n', 'v' } },
+      },
       icons = {
         -- set icon mappings to true if you have a Nerd Font
         mappings = vim.g.have_nerd_font,
@@ -546,6 +592,12 @@ require('lazy').setup({
             vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
           end
 
+          -- Register which-key group for LSP commands
+          require('which-key').add {
+            { '<leader>l', group = '[L]SP', buffer = event.buf },
+            { 'gr', group = '[G]oto/[R]efactor', buffer = event.buf },
+          }
+
           -- Rename the variable under your cursor.
           --  Most Language Servers support renaming across files, etc.
           map('grn', vim.lsp.buf.rename, '[R]e[n]ame')
@@ -582,6 +634,9 @@ require('lazy').setup({
           --  Useful when you're not sure what type a variable is and you want to see
           --  the definition of its *type*, not where it was *defined*.
           map('grt', require('telescope.builtin').lsp_type_definitions, '[G]oto [T]ype Definition')
+
+          -- NOTE: Additional LSP keymaps are defined in lua/custom/plugins/lsp-keymaps.lua
+          -- This keeps custom keymaps organized and separate from the base kickstart config.
 
           -- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
           ---@param client vim.lsp.Client
@@ -634,6 +689,36 @@ require('lazy').setup({
               vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
             end, '[T]oggle Inlay [H]ints')
           end
+
+          -- Toggle clangd LSP on/off for current buffer
+          map('<leader>tc', function()
+            local buf = event.buf
+            local clients = vim.lsp.get_clients({ bufnr = buf })
+            local clangd_client = nil
+            
+            -- Find clangd client for this buffer
+            for _, client in ipairs(clients) do
+              if client.name == 'clangd' then
+                clangd_client = client
+                break
+              end
+            end
+            
+            if clangd_client then
+              -- Stop clangd for this buffer
+              vim.lsp.stop_client(clangd_client.id)
+              vim.notify('Clangd LSP disabled for buffer', vim.log.levels.INFO)
+            else
+              -- Start clangd for this buffer
+              local filetype = vim.bo[buf].filetype
+              if vim.tbl_contains({ 'c', 'cpp', 'objc', 'objcpp', 'cuda', 'proto' }, filetype) then
+                vim.lsp.enable('clangd')
+                vim.notify('Clangd LSP enabled for buffer', vim.log.levels.INFO)
+              else
+                vim.notify('Clangd not available for filetype: ' .. filetype, vim.log.levels.WARN)
+              end
+            end
+          end, '[T]oggle [C]langd LSP')
         end,
       })
 
@@ -682,7 +767,24 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        -- clangd = {},
+        clangd = {
+          cmd = {
+            'clangd',
+            '--background-index',
+            '--clang-tidy',
+            '--header-insertion=never', -- Embedded C doesn't need auto-includes
+            '--completion-style=bundled', -- Group similar completions for less clutter
+            '--limit-results=50', -- Reduce from default 100 for faster results
+            '--fallback-style=llvm',
+            '-j=2', -- Limit background indexing to 2 threads for lower CPU usage
+          },
+          init_options = {
+            clangdFileStatus = true,
+            usePlaceholders = false, -- Disable for lighter rendering
+            completeUnimported = false, -- Not needed with explicit includes
+            semanticHighlighting = true,
+          },
+        },
         -- gopls = {},
         -- pyright = {},
         -- rust_analyzer = {},
@@ -757,16 +859,8 @@ require('lazy').setup({
         function()
           require('conform').format { async = true, lsp_format = 'fallback' }
         end,
-        mode = 'n',
-        desc = 'Format buffer',
-      },
-      {
-        '<leader>f',
-        function()
-          require('conform').format { async = true, lsp_format = 'fallback' }
-        end,
-        mode = 'v',
-        desc = '[F]ormat selection',
+        mode = { 'n', 'v' },
+        desc = 'Format buffer/selection',
       },
     },
     opts = {
@@ -775,7 +869,7 @@ require('lazy').setup({
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
         -- languages here or re-enable it for the disabled ones.
-        local disable_filetypes = { c = true, cpp = true }
+        local disable_filetypes = {}
         if disable_filetypes[vim.bo[bufnr].filetype] then
           return nil
         else
@@ -908,7 +1002,7 @@ require('lazy').setup({
     init = function()
       -- Load colorscheme immediately in init to avoid startup delay
       vim.cmd.colorscheme 'tokyonight-night'
-      
+
       -- Make background transparent
       vim.cmd [[
         highlight Normal guibg=NONE ctermbg=NONE
@@ -921,8 +1015,8 @@ require('lazy').setup({
       transparent = true,
       styles = {
         comments = { italic = false }, -- Disable italics in comments
-        sidebars = "transparent",
-        floats = "transparent",
+        sidebars = 'transparent',
+        floats = 'transparent',
       },
     },
   },
@@ -947,27 +1041,27 @@ require('lazy').setup({
       -- - sd'   - [S]urround [D]elete [']quotes
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
-      
+
       -- File explorer with better visuals
       local show_dotfiles = true
       local filter_show = function(fs_entry)
         return show_dotfiles or not vim.startswith(fs_entry.name, '.')
       end
-      
+
       local toggle_dotfiles = function()
         show_dotfiles = not show_dotfiles
-        MiniFiles.refresh({ content = { filter = filter_show } })
+        MiniFiles.refresh { content = { filter = filter_show } }
       end
-      
+
       local preview_enabled = true
       local toggle_preview = function()
         preview_enabled = not preview_enabled
-        MiniFiles.refresh({ windows = { preview = preview_enabled } })
+        MiniFiles.refresh { windows = { preview = preview_enabled } }
       end
-      
-      require('mini.files').setup({
+
+      require('mini.files').setup {
         windows = {
-          preview = true,  -- Enable preview pane
+          preview = true, -- Enable preview pane
           width_focus = 30,
           width_preview = 80,
         },
@@ -979,21 +1073,21 @@ require('lazy').setup({
           sort = nil,
         },
         mappings = {
-          close       = 'q',
-          go_in       = 'l',
-          go_in_plus  = 'L',
-          go_out      = 'h',
+          close = 'q',
+          go_in = 'l',
+          go_in_plus = 'L',
+          go_out = 'h',
           go_out_plus = 'H',
-          mark_goto   = "'",
-          mark_set    = 'm',
-          reset       = '<BS>',
-          show_help   = 'g?',
+          mark_goto = "'",
+          mark_set = 'm',
+          reset = '<BS>',
+          show_help = 'g?',
           synchronize = '=',
-          trim_left   = '<',
-          trim_right  = '>',
+          trim_left = '<',
+          trim_right = '>',
         },
-      })
-      
+      }
+
       -- Toggle hidden files and preview keybindings
       vim.api.nvim_create_autocmd('User', {
         pattern = 'MiniFilesBufferCreate',
@@ -1008,6 +1102,10 @@ require('lazy').setup({
           end, { buffer = args.data.buf_id, desc = 'Set cwd to current location' })
         end,
       })
+      vim.keymap.set('n', '<leader>e', function()
+        require('mini.files').open(vim.api.nvim_buf_get_name(0))
+      end, { desc = 'Open mini.files at current file' })
+
       vim.keymap.set('n', '\\', function()
         if vim.bo.filetype == 'minifiles' then
           require('mini.files').close()
@@ -1035,10 +1133,9 @@ require('lazy').setup({
         end,
       })
 
-
       -- Load bookmarks from file on startup only (no auto-save)
-      local bookmarks_file = vim.fn.stdpath('data') .. '/mini-files-bookmarks.lua'
-      
+      local bookmarks_file = vim.fn.stdpath 'data' .. '/mini-files-bookmarks.lua'
+
       local load_bookmarks = function()
         local ok, bookmarks = pcall(dofile, bookmarks_file)
         if ok and type(bookmarks) == 'table' then
@@ -1071,7 +1168,7 @@ require('lazy').setup({
         pattern = 'MiniFilesBufferCreate',
         callback = function(args)
           local buf_id = args.data.buf_id
-          
+
           -- Open bookmarks file for editing
           vim.keymap.set('n', 'bm', function()
             require('mini.files').close()
@@ -1105,7 +1202,22 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'powershell', 'query', 'vim', 'vimdoc' },
+      ensure_installed = {
+        'bash',
+        'c',
+        'diff',
+        'gitcommit',
+        'git_rebase',
+        'html',
+        'lua',
+        'luadoc',
+        'markdown',
+        'markdown_inline',
+        'powershell',
+        'query',
+        'vim',
+        'vimdoc',
+      },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -1132,7 +1244,7 @@ require('lazy').setup({
     },
     config = function(_, opts)
       -- Force Windows to compile parsers locally with clang
-      if vim.fn.has('win32') == 1 then
+      if vim.fn.has 'win32' == 1 then
         require('nvim-treesitter.install').prefer_git = true
         require('nvim-treesitter.install').compilers = { 'clang', 'gcc' }
       end

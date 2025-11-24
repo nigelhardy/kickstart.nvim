@@ -264,7 +264,8 @@ require('lazy').setup({
       require('telescope').setup {
         defaults = {
           mappings = {
-            i = { ['<c-enter>'] = 'to_fuzzy_refine' },
+            -- Switches between fuzzy and regular search in Telescope insert mode
+            i = { ['<C-CR>'] = 'to_fuzzy_refine' },
           },
         },
         extensions = {

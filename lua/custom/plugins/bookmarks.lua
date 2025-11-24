@@ -12,7 +12,7 @@ return {
     { 'kkharji/sqlite.lua' },
     { 'nvim-telescope/telescope.nvim' },
     { 'stevearc/dressing.nvim' },
-    { 'GeorgesAlkhouri/nvim-aider' },
+    -- { 'GeorgesAlkhouri/nvim-aider' }, -- not using Aider, so not added
   },
   init = function()
     -- I have to point this thing to the SQLite3 DLL manually on Windows.

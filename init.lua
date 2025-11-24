@@ -101,67 +101,8 @@ vim.o.smartindent = true -- Smart autoindenting on new lines
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
--- TODO move this little c/h helper, maybe only active on .c and .h files somehow?
-vim.keymap.set('n', '<leader>a', function()
-  local ext = vim.fn.expand '%:e'
-  local base = vim.fn.expand '%:r'
-  local target = ext == 'c' and base .. '.h' or base .. '.c'
-
-  if vim.fn.filereadable(target) == 1 then
-    vim.cmd('edit ' .. target)
-  else
-    print('File ' .. target .. ' not found')
-  end
-end, { desc = 'Switch between .c and .h' })
-
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
-
--- Change directory to current file's location
-vim.keymap.set('n', '<leader>cd', ':cd %:p:h<CR>:pwd<CR>', { desc = 'CD to current file directory' })
-
--- Global clangd LSP toggle (works even when no LSP attached)
-vim.keymap.set('n', '<leader>tc', function()
-  local buf = vim.api.nvim_get_current_buf()
-  local clients = vim.lsp.get_clients { bufnr = buf }
-  local clangd_client = nil
-
-  -- Find clangd client for this buffer
-  for _, client in ipairs(clients) do
-    if client.name == 'clangd' then
-      clangd_client = client
-      break
-    end
-  end
-
-  if clangd_client then
-    -- Stop clangd for this buffer
-    vim.lsp.stop_client(clangd_client.id)
-    vim.notify('Clangd LSP disabled for buffer', vim.log.levels.INFO)
-  else
-    -- Start clangd for this buffer
-    local filetype = vim.bo[buf].filetype
-    if vim.tbl_contains({ 'c', 'cpp', 'objc', 'objcpp', 'cuda', 'proto' }, filetype) then
-      vim.lsp.enable 'clangd'
-      vim.notify('Clangd LSP enabled for buffer', vim.log.levels.INFO)
-    else
-      vim.notify('Clangd not available for filetype: ' .. filetype, vim.log.levels.WARN)
-    end
-  end
-end, { desc = '[T]oggle [C]langd LSP' })
-
--- Telescope visual mode keymaps (load Telescope on demand)
-vim.keymap.set('v', '<leader>sw', function()
-  vim.cmd 'noau normal! "vy"'
-  local text = vim.fn.getreg 'v'
-  require('telescope.builtin').grep_string { search = text }
-end, { desc = '[S]earch current selection' })
-
-vim.keymap.set('v', '<leader>sW', function()
-  vim.cmd 'noau normal! "vy"'
-  local text = vim.fn.getreg 'v'
-  require('telescope.builtin').live_grep { default_text = text }
-end, { desc = '[S]earch current selection (editable)' })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -171,12 +112,6 @@ end, { desc = '[S]earch current selection (editable)' })
 -- or just use <C-\><C-n> to exit terminal mode
 vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
--- TIP: Disable arrow keys in normal mode
--- vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
--- vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
--- vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
--- vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
-
 -- Keybinds to make split navigation easier.
 --  Use CTRL+<hjkl> to switch between windows
 --
@@ -185,12 +120,6 @@ vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left wind
 vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
-
--- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
--- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
--- vim.keymap.set("n", "<C-S-l>", "<C-w>L", { desc = "Move window to the right" })
--- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
--- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -235,55 +164,6 @@ rtp:prepend(lazypath)
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
   'NMAC427/guess-indent.nvim', -- Detect tabstop and shiftwidth automatically
-
-  -- NOTE: Plugins can also be added by using a table,
-  -- with the first argument being the link and the following
-  -- keys can be used to configure plugin behavior/loading/etc.
-  --
-  -- Use `opts = {}` to automatically pass options to a plugin's `setup()` function, forcing the plugin to be loaded.
-  --
-
-  -- Alternatively, use `config = function() ... end` for full control over the configuration.
-  -- If you prefer to call `setup` explicitly, use:
-  --    {
-  --        'lewis6991/gitsigns.nvim',
-  --        config = function()
-  --            require('gitsigns').setup({
-  --                -- Your gitsigns configuration here
-  --            })
-  --        end,
-  --    }
-  --
-  -- Here is a more advanced example where we pass configuration
-  -- options to `gitsigns.nvim`.
-  --
-  -- See `:help gitsigns` to understand what the configuration keys do
-  { -- Adds git related signs to the gutter, as well as utilities for managing changes
-    'lewis6991/gitsigns.nvim',
-    opts = {
-      signs = {
-        add = { text = '+' },
-        change = { text = '~' },
-        delete = { text = '_' },
-        topdelete = { text = '‾' },
-        changedelete = { text = '~' },
-      },
-    },
-  },
-
-  -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
-  --
-  -- This is often very useful to both group configuration, as well as handle
-  -- lazy loading plugins that don't need to be loaded immediately at startup.
-  --
-  -- For example, in the following configuration, we use:
-  --  event = 'VimEnter'
-  --
-  -- which loads which-key before all the UI elements are loaded. Events can be
-  -- normal autocommands events (`:help autocmd-events`).
-  --
-  -- Then, because we use the `opts` key (recommended), the configuration runs
-  -- after the plugin has been loaded as `require(MODULE).setup(opts)`.
 
   { -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
@@ -344,22 +224,10 @@ require('lazy').setup({
     },
   },
 
-  -- NOTE: Plugins can specify dependencies.
-  --
-  -- The dependencies are proper plugin specifications as well - anything
-  -- you do for a plugin at the top level, you can do for a dependency.
-  --
-  -- Use the `dependencies` key to specify the dependencies of a particular plugin
-
   { -- Fuzzy Finder (files, lsp, etc)
     'nvim-telescope/telescope.nvim',
     cmd = 'Telescope',
     keys = {
-      -- [F]ind keymaps
-      { '<leader>ff', '<cmd>Telescope find_files<cr>', desc = '[F]ind [F]iles' },
-      { '<leader>fg', '<cmd>Telescope live_grep<cr>', desc = '[F]ind by [G]rep' },
-      { '<leader>fb', '<cmd>Telescope buffers<cr>', desc = '[F]ind [B]uffers' },
-      { '<leader>fh', '<cmd>Telescope help_tags<cr>', desc = '[F]ind [H]elp' },
       -- [S]earch keymaps
       { '<leader>sh', '<cmd>Telescope help_tags<cr>', desc = '[S]earch [H]elp' },
       { '<leader>sk', '<cmd>Telescope keymaps<cr>', desc = '[S]earch [K]eymaps' },
@@ -409,6 +277,8 @@ require('lazy').setup({
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
 
+      -- TODO check if this actually works, or why it doesn't?
+      -- none of these seem to, location?
       -- Defer loading builtin to avoid startup cost
       vim.keymap.set('n', '<leader>/', function()
         require('telescope.builtin').current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {

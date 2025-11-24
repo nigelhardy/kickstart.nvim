@@ -239,6 +239,40 @@ require('lazy').setup({
       { '<leader>sr', '<cmd>Telescope resume<cr>', desc = '[S]earch [R]esume' },
       { '<leader>s.', '<cmd>Telescope oldfiles<cr>', desc = '[S]earch Recent Files' },
       { '<leader><leader>', '<cmd>Telescope buffers<cr>', desc = '[ ] Find existing buffers' },
+      {
+        '<leader>/',
+        function()
+          require('telescope.builtin').current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {
+            winblend = 10,
+            previewer = false,
+          })
+        end,
+        desc = '[/] Fuzzily search in current buffer',
+      },
+      {
+        '<leader>s/',
+        function()
+          require('telescope.builtin').live_grep {
+            grep_open_files = true,
+            prompt_title = 'Live Grep in Open Files',
+          }
+        end,
+        desc = '[S]earch [/] in Open Files',
+      },
+      {
+        '<leader>sn',
+        function()
+          require('telescope.builtin').find_files { cwd = vim.fn.stdpath 'config' }
+        end,
+        desc = '[S]earch [N]eovim files',
+      },
+      {
+        '<leader>sW',
+        function()
+          require('telescope.builtin').live_grep { default_text = vim.fn.expand '<cword>' }
+        end,
+        desc = '[S]earch current [W]ord (editable)',
+      },
     },
     dependencies = {
       'nvim-lua/plenary.nvim',
@@ -278,30 +312,7 @@ require('lazy').setup({
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
 
-      -- TODO check if this actually works, or why it doesn't?
-      -- none of these seem to, location?
-      -- Defer loading builtin to avoid startup cost
-      vim.keymap.set('n', '<leader>/', function()
-        require('telescope.builtin').current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {
-          winblend = 10,
-          previewer = false,
-        })
-      end, { desc = '[/] Fuzzily search in current buffer' })
-
-      vim.keymap.set('n', '<leader>s/', function()
-        require('telescope.builtin').live_grep {
-          grep_open_files = true,
-          prompt_title = 'Live Grep in Open Files',
-        }
-      end, { desc = '[S]earch [/] in Open Files' })
-
-      vim.keymap.set('n', '<leader>sn', function()
-        require('telescope.builtin').find_files { cwd = vim.fn.stdpath 'config' }
-      end, { desc = '[S]earch [N]eovim files' })
-
-      vim.keymap.set('n', '<leader>sW', function()
-        require('telescope.builtin').live_grep { default_text = vim.fn.expand '<cword>' }
-      end, { desc = '[S]earch current [W]ord (editable)' })
+      
     end,
   },
 

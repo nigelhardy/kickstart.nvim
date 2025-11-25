@@ -15,18 +15,20 @@ Refactor mini.files bookmark system to be git-repository aware with remote URL k
 - [x] Maintain existing functionality while modularizing
 - [x] Update init.lua to remove mini.nvim configuration (now in separate file)
 
-#### Phase 2: Git-Remote Detection and Storage
-- [ ] Implement git repository detection using `git rev-parse --show-toplevel`
-- [ ] Extract remote URL: `git remote get-url origin` (or primary remote)
-- [ ] Create storage structure keyed by remote URL for repo portability
-- [ ] Implement path normalization (absolute ↔ relative within repo)
-- [ ] Fallback chain: remote URL → repo path → global bookmarks
+#### Phase 2: Git-Remote Detection and Storage ✅
+- [x] Implement git repository detection using `git rev-parse --show-toplevel`
+- [x] Extract remote URL: `git remote get-url origin` (or primary remote)
+- [x] Create storage structure keyed by remote URL for repo portability
+- [x] Implement path normalization (absolute ↔ relative within repo)
+- [x] Fallback chain: remote URL → repo path → global bookmarks
 
-#### Phase 3: Quick Folder Shortcuts System
-- [ ] Add global shortcuts storage for frequently accessed directories
-- [ ] Implement keybinding system: `<leader>sa` (add), `<leader>sj` (jump), `<leader>sl` (list), `<leader>se` (edit)
-- [ ] Create mini.files integration for direct opening to shortcuts
-- [ ] Add telescope integration for fuzzy finding shortcuts
+#### Phase 3: Quick Folder Shortcuts System ✅
+- [x] Add global shortcuts storage for frequently accessed directories
+- [x] Implement keybinding system: `<leader>sa` (add), `<leader>sj` (jump), `<leader>sl` (list), `<leader>se` (edit)
+- [x] Create mini.files integration for direct opening to shortcuts
+- [x] Add telescope integration for fuzzy finding shortcuts
+- [x] Fix keybinding conflict - restored original <leader>sf for file search, moved shortcuts to <leader>sj
+- [x] Fix mini.files URI path detection - ensure shortcuts store actual filesystem paths
 
 #### Phase 4: Unified Storage Architecture
 - [ ] Design combined storage structure for shortcuts, git bookmarks, and global bookmarks

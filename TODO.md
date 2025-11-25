@@ -29,6 +29,18 @@ Refactor mini.files bookmark system to be git-repository aware with remote URL k
 - [x] Add telescope integration for fuzzy finding shortcuts
 - [x] Fix keybinding conflict - restored original <leader>sf for file search, moved shortcuts to <leader>sj
 - [x] Fix mini.files URI path detection - ensure shortcuts store actual filesystem paths
+- [x] Fix git remote URL matching - update bookmarks to use actual repo remote format
+- [x] Fix g/ letter jump - move to correct MiniFilesBufferCreate autocmd
+- [x] Fix mini.files bookmark ID format - use single characters as required by mini.files
+- [x] Fix mini.files bookmark path format - use directory paths instead of file paths
+- [x] Add gf keybinding to jump to bookmarked file from directory bookmark
+- [x] Make shortcuts git-aware - <leader>sj now includes both global shortcuts AND repo bookmarks
+
+** g/ seems broken for ~/ directory might be capital letters, or depth, or . files
+Need to clean up and make it intuitive to add relative paths for a repo, and also global paths
+I want for work each controller folder to be easy to fuzzy find without trouble and open in mini files
+maybe I just add to <leader>sf a way to open in mini.files
+bookmarks need cleaning and the way mini.files folder bookmarks are single char keys, and others are full names
 
 #### Phase 4: Unified Storage Architecture
 - [ ] Design combined storage structure for shortcuts, git bookmarks, and global bookmarks

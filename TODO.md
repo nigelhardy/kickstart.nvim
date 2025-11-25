@@ -41,6 +41,7 @@ Need to clean up and make it intuitive to add relative paths for a repo, and als
 I want for work each controller folder to be easy to fuzzy find without trouble and open in mini files
 maybe I just add to <leader>sf a way to open in mini.files
 bookmarks need cleaning and the way mini.files folder bookmarks are single char keys, and others are full names
+maybe when i press ' key it could show options available to me!
 
 #### Phase 4: Unified Storage Architecture
 - [ ] Design combined storage structure for shortcuts, git bookmarks, and global bookmarks

@@ -1,5 +1,5 @@
--- Mini.nvim configuration with bookmark functionality
--- This file configures the mini.nvim plugin and extends it with git-aware bookmarks
+-- Mini.nvim configuration with simplified git-aware bookmarks
+-- This file configures the mini.nvim plugin with basic bookmark functionality
 
 return {
   'echasnovski/mini.nvim',
@@ -91,9 +91,7 @@ return {
       end
     end, { desc = 'Toggle mini.files' })
 
-
-
-    -- Git-aware bookmark functionality (Phase 2: Git repository detection and storage)
+    -- Simplified git-aware bookmark functionality
     local MiniFiles = require('mini.files')
 
     -- Git utility functions
@@ -121,21 +119,6 @@ return {
       return vim.v.shell_error == 0 and result or nil
     end
     
-    -- Convert absolute path to repo-relative path
-    function git_utils.to_relative_path(abs_path, repo_root)
-      repo_root = repo_root or git_utils.get_repo_root(vim.fn.dirname(abs_path))
-      if not repo_root then
-        return abs_path
-      end
-      
-      -- Normalize paths and make relative
-      local rel_path = vim.fn.fnamemodify(abs_path, ':.')
-      if vim.startswith(rel_path, './') then
-        rel_path = rel_path:sub(3)
-      end
-      return rel_path
-    end
-    
     -- Convert repo-relative path to absolute path
     function git_utils.to_absolute_path(rel_path, repo_root)
       repo_root = repo_root or git_utils.get_repo_root()
@@ -146,16 +129,13 @@ return {
       return repo_root .. '/' .. rel_path
     end
 
-    -- Enhanced bookmark storage system
+    -- Simplified bookmark storage system
     local bookmarks_file = vim.fn.stdpath 'data' .. '/mini-files-bookmarks.lua'
 
     local load_bookmarks = function()
       local ok, bookmarks = pcall(dofile, bookmarks_file)
       if ok and type(bookmarks) == 'table' then
         -- Initialize structure if missing
-        if not bookmarks.shortcuts then
-          bookmarks.shortcuts = {}
-        end
         if not bookmarks.git_bookmarks then
           bookmarks.git_bookmarks = {}
         end
@@ -167,24 +147,9 @@ return {
       
       -- Return default structure
       return {
-        shortcuts = {},
         git_bookmarks = {},
         global_bookmarks = {}
       }
-    end
-
-    local save_bookmarks = function(bookmarks)
-      local file = io.open(bookmarks_file, 'w')
-      if file then
-        file:write('return ' .. vim.inspect(bookmarks))
-        file:close()
-      else
-        vim.notify('Failed to save bookmarks to ' .. bookmarks_file, vim.log.levels.ERROR)
-      end
-    end
-
-    local set_mark = function(id, path)
-      MiniFiles.set_bookmark(id, path)
     end
 
     -- Get current context (repo info or global)
@@ -199,15 +164,15 @@ return {
       }
     end
 
-    -- Load appropriate bookmarks based on current context
-    local load_context_bookmarks = function()
+    -- Load bookmarks once at startup
+    local load_bookmarks_once = function()
       local bookmarks = load_bookmarks()
       local context = get_current_context()
+      local loaded_count = 0
       
       if context.is_git_repo and context.remote_url then
         -- Load git-specific bookmarks
         local repo_bookmarks = bookmarks.git_bookmarks[context.remote_url] or {}
-        local loaded = {}
         
         for id, mark in pairs(repo_bookmarks) do
           if mark.path then
@@ -215,415 +180,54 @@ return {
             local abs_path = git_utils.to_absolute_path(mark.path, context.repo_root)
             -- mini.files bookmarks need directory paths, not file paths
             local bookmark_dir = vim.fn.isdirectory(abs_path) == 1 and abs_path or vim.fn.fnamemodify(abs_path, ':h')
-            loaded[id] = { path = bookmark_dir, note = mark.note, file = mark.path }
-            set_mark(id, bookmark_dir)
+            MiniFiles.set_bookmark(id, bookmark_dir)
+            loaded_count = loaded_count + 1
           end
         end
         
-        vim.notify('Loaded ' .. vim.tbl_count(loaded) .. ' bookmarks for repo: ' .. (context.remote_url:match('([^/]+)%.git$') or context.remote_url), vim.log.levels.INFO)
-        return loaded
+        if loaded_count > 0 then
+          local repo_name = context.remote_url:match('([^/]+)%.git$') or context.remote_url
+          vim.notify('Loaded ' .. loaded_count .. ' bookmarks for repo: ' .. repo_name, vim.log.levels.INFO)
+        end
       else
         -- Load global bookmarks
-        local loaded = {}
         for id, mark in pairs(bookmarks.global_bookmarks) do
           if mark.path then
             -- mini.files bookmarks need directory paths, not file paths
             local bookmark_dir = vim.fn.isdirectory(mark.path) == 1 and mark.path or vim.fn.fnamemodify(mark.path, ':h')
-            loaded[id] = { path = bookmark_dir, note = mark.note, file = mark.path }
-            set_mark(id, bookmark_dir)
+            MiniFiles.set_bookmark(id, bookmark_dir)
+            loaded_count = loaded_count + 1
           end
         end
         
-        vim.notify('Loaded ' .. vim.tbl_count(loaded) .. ' global bookmarks', vim.log.levels.INFO)
-        return loaded
+        if loaded_count > 0 then
+          vim.notify('Loaded ' .. loaded_count .. ' global bookmarks', vim.log.levels.INFO)
+        end
       end
     end
 
-    -- Load bookmarks when mini.files explorer opens
+    -- Load bookmarks when mini.files opens (once per session)
+    local bookmarks_loaded = false
     vim.api.nvim_create_autocmd('User', {
       pattern = 'MiniFilesExplorerOpen',
       callback = function()
-        load_context_bookmarks()
+        if not bookmarks_loaded then
+          load_bookmarks_once()
+          bookmarks_loaded = true
+        end
       end,
     })
 
-    -- Enhanced mini.files keybindings
+    -- Simple keybinding to edit bookmarks file
     vim.api.nvim_create_autocmd('User', {
       pattern = 'MiniFilesBufferCreate',
       callback = function(args)
-        local buf_id = args.data.buf_id
-
-        -- Edit current context bookmarks
-        vim.keymap.set('n', 'bm', function()
-          MiniFiles.close()
-          local context = get_current_context()
-          local target_file
-          
-          if context.is_git_repo and context.remote_url then
-            -- For now, edit the main bookmarks file
-            -- TODO: Create repo-specific bookmark editing interface
-            target_file = bookmarks_file
-          else
-            target_file = bookmarks_file
-          end
-          
-          vim.cmd('edit ' .. target_file)
-        end, { buffer = buf_id, desc = 'Edit bookmarks file' })
-        
-        -- Add current file to bookmarks
-        vim.keymap.set('n', 'ma', function()
-          local current_file = vim.api.nvim_buf_get_name(0)
-          if current_file == '' then
-            vim.notify('No file to bookmark', vim.log.levels.WARN)
-            return
-          end
-          
-          local context = get_current_context()
-          local bookmarks = load_bookmarks()
-          
-          -- Use single character bookmark IDs for mini.files compatibility
-          local bookmark_id = vim.fn.input('Bookmark ID (single character): ')
-          
-          if bookmark_id == '' or #bookmark_id ~= 1 then
-            vim.notify('Bookmark ID must be a single character', vim.log.levels.WARN)
-            return
-          end
-          
-          local note = vim.fn.input('Note (optional): ')
-          
-          if context.is_git_repo and context.remote_url then
-            -- Store as repo-relative bookmark
-            local rel_path = git_utils.to_relative_path(current_file, context.repo_root)
-            
-            if not bookmarks.git_bookmarks[context.remote_url] then
-              bookmarks.git_bookmarks[context.remote_url] = {}
-            end
-            
-            bookmarks.git_bookmarks[context.remote_url][bookmark_id] = {
-              path = rel_path,
-              note = note ~= '' and note or nil
-            }
-            
-            vim.notify('Added repo bookmark "' .. bookmark_id .. '" for ' .. rel_path, vim.log.levels.INFO)
-          else
-            -- Store as global bookmark
-            bookmarks.global_bookmarks[bookmark_id] = {
-              path = current_file,
-              note = note ~= '' and note or nil
-            }
-            
-            vim.notify('Added global bookmark "' .. bookmark_id .. '" for ' .. current_file, vim.log.levels.INFO)
-          end
-          
-          save_bookmarks(bookmarks)
-          load_context_bookmarks() -- Reload bookmarks
-        end, { buffer = buf_id, desc = 'Add current file to bookmarks' })
-        
-        -- Quick folder shortcuts
-        vim.keymap.set('n', '<leader>sa', function()
-          local current_dir
-          
-          -- Get the actual filesystem path, not mini.files URI
-          if vim.bo.filetype == 'minifiles' then
-            local fs_entry = MiniFiles.get_fs_entry()
-            if fs_entry then
-              current_dir = vim.fn.isdirectory(fs_entry.path) == 1 and fs_entry.path or vim.fn.fnamemodify(fs_entry.path, ':h')
-            else
-              current_dir = vim.fn.getcwd()
-            end
-          else
-            current_dir = vim.fn.getcwd()
-          end
-          
-          -- Clean up any mini.files URI format
-          if current_dir:match('^minifiles://') then
-            -- Extract actual path from minifiles://48//path format
-            current_dir = current_dir:gsub('^minifiles://%d+//', '')
-          end
-          
-          local shortcut_name = vim.fn.input('Shortcut name for "' .. vim.fn.fnamemodify(current_dir, ':t') .. '": ')
-          if shortcut_name == '' then
-            return
-          end
-          
-          local bookmarks = load_bookmarks()
-          bookmarks.shortcuts[shortcut_name] = current_dir
-          save_bookmarks(bookmarks)
-          
-          vim.notify('Added shortcut "' .. shortcut_name .. '" -> ' .. current_dir, vim.log.levels.INFO)
-        end, { buffer = buf_id, desc = '[S]hortcut [A]dd current directory' })
-        
-        vim.keymap.set('n', '<leader>sj', function()
-          local bookmarks = load_bookmarks()
-          local shortcuts = {}
-          
-          for name, path in pairs(bookmarks.shortcuts) do
-            table.insert(shortcuts, { name = name, path = path })
-          end
-          
-          if #shortcuts == 0 then
-            vim.notify('No shortcuts defined. Use <leader>sa to add one.', vim.log.levels.INFO)
-            return
-          end
-          
-          -- Create selection interface
-          local selected = vim.fn.inputlist(vim.tbl_map(function(item)
-            return item.name .. ' -> ' .. item.path
-          end, shortcuts))
-          
-          if selected > 0 and selected <= #shortcuts then
-            local shortcut = shortcuts[selected]
-            MiniFiles.close()
-            MiniFiles.open(shortcut.path)
-            vim.notify('Jumped to shortcut: ' .. shortcut.name, vim.log.levels.INFO)
-          end
-        end, { buffer = buf_id, desc = '[S]hortcut [J]ump to directory' })
-        
-        vim.keymap.set('n', '<leader>sl', function()
-          local bookmarks = load_bookmarks()
-          local shortcuts = {}
-          
-          for name, path in pairs(bookmarks.shortcuts) do
-            table.insert(shortcuts, { name = name, path = path })
-          end
-          
-          if #shortcuts == 0 then
-            vim.notify('No shortcuts defined', vim.log.levels.INFO)
-            return
-          end
-          
-          -- Display shortcuts in a temporary buffer
-          local buf = vim.api.nvim_create_buf(false, true)
-          local lines = { '# Folder Shortcuts', '' }
-          
-          for _, shortcut in ipairs(shortcuts) do
-            table.insert(lines, shortcut.name .. ' -> ' .. shortcut.path)
-          end
-          
-          vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-          vim.api.nvim_buf_set_option(buf, 'filetype', 'text')
-          vim.api.nvim_buf_set_option(buf, 'modifiable', false)
-          
-          -- Show in a floating window
-          local win = vim.api.nvim_open_win(buf, true, {
-            relative = 'editor',
-            width = 80,
-            height = math.min(20, #shortcuts + 4),
-            row = math.floor((vim.o.lines - 20) / 2),
-            col = math.floor((vim.o.columns - 80) / 2),
-            border = 'rounded',
-            title = 'Folder Shortcuts',
-          })
-          
-          -- Close on any key
-          vim.keymap.set('n', '<CR>', '<Cmd>close<CR>', { buffer = buf, silent = true })
-          vim.keymap.set('n', '<Esc>', '<Cmd>close<CR>', { buffer = buf, silent = true })
-          vim.keymap.set('n', 'q', '<Cmd>close<CR>', { buffer = buf, silent = true })
-        end, { buffer = buf_id, desc = '[S]hortcut [L]ist all shortcuts' })
-        
-        vim.keymap.set('n', '<leader>se', function()
+        vim.keymap.set('n', 'be', function()
           MiniFiles.close()
           vim.cmd('edit ' .. bookmarks_file)
-        end, { buffer = buf_id, desc = '[S]hortcut [E]dit bookmarks file' })
-        
-        -- Quick jump to letter in mini.files
-        vim.keymap.set('n', 'g/', function()
-          local char = vim.fn.getchar()
-          if char then
-            local letter = vim.fn.nr2char(tonumber(char) or 0)
-            -- Account for icons (about 7 chars) before filename
-            local pattern = '^.......' .. letter
-            local line = vim.fn.search(pattern, 'W')
-            if line == 0 then
-              vim.notify('No line starting with "' .. letter .. '" found', vim.log.levels.INFO)
-            end
-          end
-        end, { buffer = buf_id, desc = 'Jump to line starting with letter' })
-        
-        -- Jump to bookmarked file from directory bookmark
-        vim.keymap.set('n', 'gf', function()
-          local fs_entry = MiniFiles.get_fs_entry()
-          if not fs_entry then
-            return
-          end
-          
-          -- Check if this directory has a bookmarked file
-          local bookmarks = load_bookmarks()
-          local context = get_current_context()
-          local current_dir = fs_entry.path
-          
-          -- Look for bookmark that points to this directory
-          local bookmarked_file = nil
-          
-          if context.is_git_repo and context.remote_url then
-            local repo_bookmarks = bookmarks.git_bookmarks[context.remote_url] or {}
-            for id, mark in pairs(repo_bookmarks) do
-              local bookmark_dir = vim.fn.isdirectory(mark.path) == 1 and mark.path or vim.fn.fnamemodify(mark.path, ':h')
-              if bookmark_dir == current_dir then
-                bookmarked_file = mark.path
-                break
-              end
-            end
-          else
-            for id, mark in pairs(bookmarks.global_bookmarks) do
-              local bookmark_dir = vim.fn.isdirectory(mark.path) == 1 and mark.path or vim.fn.fnamemodify(mark.path, ':h')
-              if bookmark_dir == current_dir then
-                bookmarked_file = mark.path
-                break
-              end
-            end
-          end
-          
-          if bookmarked_file then
-            -- Navigate to the specific file
-            local target_file = context.is_git_repo and context.remote_url and 
-              git_utils.to_absolute_path(bookmarked_file, context.repo_root) or 
-              bookmarked_file
-            
-            -- Find and select the file in mini.files
-            local filename = vim.fn.fnamemodify(target_file, ':t')
-            local pattern = '^.......' .. filename
-            local line = vim.fn.search(pattern, 'W')
-            if line > 0 then
-              vim.notify('Found bookmarked file: ' .. filename, vim.log.levels.INFO)
-            else
-              vim.notify('Bookmarked file not found in current view: ' .. filename, vim.log.levels.WARN)
-            end
-          else
-            vim.notify('No bookmarked file in this directory', vim.log.levels.INFO)
-          end
-        end, { buffer = buf_id, desc = '[G]oto bookmarked [F]ile in directory' })
+        end, { buffer = args.data.buf_id, desc = '[B]ookmarks [E]dit' })
       end,
     })
-
-    -- Global keybindings for shortcuts (work outside mini.files)
-    vim.keymap.set('n', '<leader>sa', function()
-      local current_dir = vim.fn.getcwd()
-      local shortcut_name = vim.fn.input('Shortcut name for "' .. vim.fn.fnamemodify(current_dir, ':t') .. '": ')
-      if shortcut_name == '' then
-        return
-      end
-      
-      local bookmarks = load_bookmarks()
-      bookmarks.shortcuts[shortcut_name] = current_dir
-      save_bookmarks(bookmarks)
-      
-      vim.notify('Added shortcut "' .. shortcut_name .. '" -> ' .. current_dir, vim.log.levels.INFO)
-    end, { desc = '[S]hortcut [A]dd current directory' })
-    
-
-    
-    -- Enhanced telescope integration for shortcuts (git-aware)
-    vim.keymap.set('n', '<leader>sj', function()
-      local bookmarks = load_bookmarks()
-      local context = get_current_context()
-      local shortcuts = {}
-      
-      -- Add global shortcuts
-      for name, path in pairs(bookmarks.shortcuts) do
-        table.insert(shortcuts, {
-          name = name,
-          path = path,
-          type = 'global',
-          display = name .. ' -> ' .. path
-        })
-      end
-      
-      -- Add git repo bookmarks as shortcuts too!
-      if context.is_git_repo and context.remote_url then
-        local repo_bookmarks = bookmarks.git_bookmarks[context.remote_url] or {}
-        for id, mark in pairs(repo_bookmarks) do
-          if mark.path then
-            local abs_path = git_utils.to_absolute_path(mark.path, context.repo_root)
-            local display_name = id .. ' -> ' .. (mark.note or mark.path)
-            table.insert(shortcuts, {
-              name = id,
-              path = abs_path,
-              type = 'repo',
-              display = display_name,
-              note = mark.note
-            })
-          end
-        end
-      end
-      
-      if #shortcuts == 0 then
-        vim.notify('No shortcuts or bookmarks defined. Use <leader>sa to add shortcuts or ma to add bookmarks.', vim.log.levels.INFO)
-        return
-      end
-      
-      -- Use telescope if available, otherwise fallback to inputlist
-      local ok, telescope = pcall(require, 'telescope')
-      if ok then
-        local pickers = require('telescope.pickers')
-        local finders = require('telescope.finders')
-        local conf = require('telescope.config').values
-        local actions = require('telescope.actions')
-        local action_state = require('telescope.actions.state')
-        
-        pickers.new({}, {
-          prompt_title = 'Shortcuts & Bookmarks',
-          finder = finders.new_table({
-            results = shortcuts,
-            entry_maker = function(entry)
-              return {
-                value = entry,
-                display = entry.display,
-                ordinal = entry.name .. ' ' .. entry.path
-              }
-            end
-          }),
-          sorter = conf.generic_sorter({}),
-          attach_mappings = function(prompt_bufnr, map)
-            actions.select_default:replace(function()
-              actions.close(prompt_bufnr)
-              local selection = action_state.get_selected_entry()
-              if selection then
-                if selection.value.type == 'repo' then
-                  -- For repo bookmarks, open to directory and navigate to file
-                  local dir = vim.fn.fnamemodify(selection.value.path, ':h')
-                  MiniFiles.open(dir)
-                  vim.schedule(function()
-                    -- Find and select the file
-                    local filename = vim.fn.fnamemodify(selection.value.path, ':t')
-                    local pattern = '^.......' .. filename
-                    vim.fn.search(pattern, 'W')
-                  end)
-                  vim.notify('Jumped to repo bookmark: ' .. selection.value.name, vim.log.levels.INFO)
-                else
-                  -- For global shortcuts, open directly
-                  MiniFiles.open(selection.value.path)
-                  vim.notify('Jumped to shortcut: ' .. selection.value.name, vim.log.levels.INFO)
-                end
-              end
-            end)
-            return true
-          end,
-        }):find()
-      else
-        -- Fallback to inputlist if telescope not available
-        local selected = vim.fn.inputlist(vim.tbl_map(function(item)
-          return item.display
-        end, shortcuts))
-        
-        if selected > 0 and selected <= #shortcuts then
-          local shortcut = shortcuts[selected]
-          if shortcut.type == 'repo' then
-            local dir = vim.fn.fnamemodify(shortcut.path, ':h')
-            MiniFiles.open(dir)
-            vim.schedule(function()
-              local filename = vim.fn.fnamemodify(shortcut.path, ':t')
-              local pattern = '^.......' .. filename
-              vim.fn.search(pattern, 'W')
-            end)
-            vim.notify('Jumped to repo bookmark: ' .. shortcut.name, vim.log.levels.INFO)
-          else
-            MiniFiles.open(shortcut.path)
-            vim.notify('Jumped to shortcut: ' .. shortcut.name, vim.log.levels.INFO)
-          end
-        end
-      end
-    end, { desc = '[S]hortcut [J]ump with telescope (includes repo bookmarks)' })
 
     -- Simple and easy statusline.
     --  You could remove this setup call if you don't like it,

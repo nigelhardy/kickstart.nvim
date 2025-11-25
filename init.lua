@@ -311,8 +311,6 @@ require('lazy').setup({
 
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
-
-      
     end,
   },
 
@@ -435,7 +433,7 @@ require('lazy').setup({
           -- NOTE: Additional LSP keymaps are defined in lua/custom/plugins/lsp-keymaps.lua
           -- This keeps custom keymaps organized and separate from the base kickstart config.
 
-          -- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
+          -- This function (formerly) resolves a difference between neovim (version 0.11) and old (version 0.10)
           ---@param client vim.lsp.Client
           ---@param method vim.lsp.protocol.Method
           ---@param bufnr? integer some lsp support methods only in specific files
@@ -444,7 +442,10 @@ require('lazy').setup({
             if vim.fn.has 'nvim-0.11' == 1 then
               return client:supports_method(method, bufnr)
             else
-              return client.supports_method(method, { bufnr = bufnr })
+              -- Not supporting thism committing to stable 0.11 version now
+              vim.notify('Not fully supported for versions other than 0.11!', vim.log.levels.ERROR)
+              return false
+              -- return client.supports_method(method, { bufnr = bufnr })
             end
           end
 
@@ -494,9 +495,9 @@ require('lazy').setup({
             local clangd_client = nil
 
             -- Find clangd client for this buffer
-            for _, client in ipairs(clients) do
-              if client.name == 'clangd' then
-                clangd_client = client
+            for _, lsp_client in ipairs(clients) do
+              if lsp_client.name == 'clangd' then
+                clangd_client = lsp_client
                 break
               end
             end
@@ -919,7 +920,7 @@ require('lazy').setup({
           vim.keymap.set('n', 'g/', function()
             local char = vim.fn.getchar()
             if char then
-              local letter = vim.fn.nr2char(char)
+              local letter = vim.fn.nr2char(tonumber(char) or 0)
               -- Account for icons (about 7 chars) before filename
               local pattern = '^.......' .. letter
               local line = vim.fn.search(pattern, 'W')

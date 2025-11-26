@@ -1,6 +1,7 @@
 ## Next Steps and Additions Desired
 
 1. <leader>p to paste and not lose the register
+2. Look at temp-lua.txt and bring back wanted features
 
 ## Git-Aware Mini.files Bookmarks Project
 

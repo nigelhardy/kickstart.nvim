@@ -52,6 +52,9 @@ return {
         map('<leader>lh', vim.lsp.buf.signature_help, 'Signature [H]elp')
         map('<C-k>', vim.lsp.buf.signature_help, 'Signature help', 'i')
 
+        -- Switch between source and header files (clangd specific)
+        map('<leader>lp', '<cmd>LspClangdSwitchSourceHeader<cr>', 'Switch between source/header')
+
 
       end,
     })

@@ -45,16 +45,3 @@ vim.keymap.set('n', '<leader>tc', function()
   end
 end, { desc = '[T]oggle [C]langd LSP' })
 
--- Telescope visual mode keymaps (load Telescope on demand)
-vim.keymap.set('v', '<leader>sw', function()
-  vim.cmd 'noau normal! "vy"'
-  local text = vim.fn.getreg 'v'
-  require('telescope.builtin').grep_string { search = text }
-end, { desc = '[S]earch current selection' })
-
-vim.keymap.set('v', '<leader>sW', function()
-  vim.cmd 'noau normal! "vy"'
-  local text = vim.fn.getreg 'v'
-  require('telescope.builtin').live_grep { default_text = text }
-end, { desc = '[S]earch current selection (editable)' })
-

@@ -1,4 +1,0 @@
-
--- Change directory to current file's location
-vim.keymap.set('n', '<leader>cd', ':cd %:p:h<CR>:pwd<CR>', { desc = 'CD to current file directory' })
-

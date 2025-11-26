@@ -55,6 +55,34 @@ return {
         -- Switch between source and header files (clangd specific)
         map('<leader>lp', '<cmd>LspClangdSwitchSourceHeader<cr>', 'Switch between source/header')
 
+        -- Toggle LSP on/off for current buffer
+        map('<leader>tl', function()
+          local buf = event.buf
+          local clients = vim.lsp.get_clients { bufnr = buf }
+          local lsp_state = vim.b[buf].lsp_enabled
+
+          -- Initialize state if not set
+          if lsp_state == nil then
+            lsp_state = #clients > 0
+            vim.b[buf].lsp_enabled = lsp_state
+          end
+
+          if lsp_state then
+            -- Disable LSP for this buffer
+            for _, client in ipairs(clients) do
+              vim.lsp.buf_detach_client(buf, client.id)
+            end
+            vim.b[buf].lsp_enabled = false
+            vim.notify('LSP disabled for buffer', vim.log.levels.INFO)
+          else
+            -- Re-enable LSP by triggering filetype detection, which preserves unsaved changes
+            vim.b[buf].lsp_enabled = true
+            vim.notify('Re-enabling LSP for buffer...', vim.log.levels.INFO)
+            
+            -- Trigger filetype detection to re-attach LSP without losing changes
+            vim.cmd('filetype detect')
+          end
+        end, '[T]oggle [L]SP')
 
       end,
     })

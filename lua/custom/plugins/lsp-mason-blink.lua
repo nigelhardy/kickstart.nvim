@@ -141,36 +141,7 @@ return {
             end, '[T]oggle Inlay [H]ints')
           end
 
-          -- Toggle clangd LSP on/off for current buffer
-          -- TODO review this was Nigel's addition for clang toggle
-          map('<leader>tc', function()
-            local buf = event.buf
-            local clients = vim.lsp.get_clients { bufnr = buf }
-            local clangd_client = nil
-
-            -- Find clangd client for this buffer
-            for _, lsp_client in ipairs(clients) do
-              if lsp_client.name == 'clangd' then
-                clangd_client = lsp_client
-                break
-              end
-            end
-
-            if clangd_client then
-              -- Stop clangd for this buffer
-              vim.lsp.stop_client(clangd_client.id)
-              vim.notify('Clangd LSP disabled for buffer', vim.log.levels.INFO)
-            else
-              -- Start clangd for this buffer
-              local filetype = vim.bo[buf].filetype
-              if vim.tbl_contains({ 'c', 'cpp', 'objc', 'objcpp', 'cuda', 'proto' }, filetype) then
-                vim.lsp.enable 'clangd'
-                vim.notify('Clangd LSP enabled for buffer', vim.log.levels.INFO)
-              else
-                vim.notify('Clangd not available for filetype: ' .. filetype, vim.log.levels.WARN)
-              end
-            end
-          end, '[T]oggle [C]langd LSP')
+          
         end,
       })
 

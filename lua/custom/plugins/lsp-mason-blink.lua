@@ -201,6 +201,15 @@ return {
             '--fallback-style=llvm',
             '-j=2', -- Limit background indexing to 2 threads for lower CPU usage
           },
+          -- Prefer real build markers over style-only files: nvim-lspconfig's
+          -- default checks `.clang-format`/`.clang-tidy` before
+          -- `compile_commands.json`, which misroots monorepos with a repo-root
+          -- `.clang-format` above a subproject's compile database.
+          root_dir = function(fname)
+            return require('lspconfig.util').root_pattern('.clangd', 'compile_commands.json', 'compile_flags.txt')(fname)
+              or vim.fs.dirname(vim.fs.find('.git', { path = fname, upward = true })[1])
+          end,
+          root_markers = { '.clangd', 'compile_commands.json', 'compile_flags.txt', '.git' },
           init_options = {
             clangdFileStatus = true,
             usePlaceholders = false, -- Disable for lighter rendering
